@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>毕业论文展示系统 | 刘梦羽 · 基于MIMIC-IV的30天再入院风险预测研究</title>
+<style>
+:root{--navy-950:#081729;--navy-900:#0c2138;--navy-800:#123253;--blue-600:#2563eb;--blue-100:#dbeafe;--ink:#1f2937;--muted:#64748b;--faint:#94a3b8;--bg:#f2f5fa;--card:#fff;--line:#e4eaf3;--green:#059669;--green-bg:#ecfdf5;--amber:#d97706;--amber-bg:#fffbeb;--red:#dc2626;--red-bg:#fef2f2;--gold:#b45309;--gold-bg:#fffbeb;--teal:#0d9488;--violet:#7c3aed;--shadow:0 1px 2px rgba(12,33,56,.06),0 4px 16px rgba(12,33,56,.06);--shadow-lg:0 8px 40px rgba(8,23,41,.18);--radius:14px}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:"Microsoft YaHei","PingFang SC","Segoe UI",sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.75}
+a{color:var(--blue-600);text-decoration:none}
+#app{display:flex;min-height:100vh}
+#sidebar{width:236px;flex-shrink:0;background:linear-gradient(180deg,var(--navy-950),var(--navy-900) 55%,var(--navy-800));color:#cbd8ea;position:fixed;top:0;bottom:0;left:0;z-index:50;display:flex;flex-direction:column}
+#main{flex:1;margin-left:236px;min-width:0}
+.logo{padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,.08)}
+.logo .mark{display:flex;align-items:center;gap:10px}
+.logo .badge{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#3b82f6,#06b6d4);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:13px;flex-shrink:0}
+.logo b{color:#fff;font-size:15px;letter-spacing:1px}
+.logo small{display:block;font-size:11px;color:#7e93b3;margin-top:2px}
+.nav{padding:14px 12px;flex:1}
+.nav-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;cursor:pointer;color:#9db2cc;font-size:14px;margin-bottom:3px;transition:all .18s;position:relative;user-select:none}
+.nav-item svg{width:17px;height:17px;flex-shrink:0}
+.nav-item:hover{background:rgba(255,255,255,.07);color:#e6eefb}
+.nav-item.active{background:linear-gradient(90deg,rgba(59,130,246,.28),rgba(59,130,246,.10));color:#fff}
+.nav-item.active::before{content:"";position:absolute;left:-12px;top:9px;bottom:9px;width:3px;border-radius:2px;background:#3b82f6}
+.nav-item .cnt{margin-left:auto;font-size:11px;background:rgba(255,255,255,.10);padding:1px 7px;border-radius:20px;color:#aebfd8}
+.side-foot{padding:14px 18px;border-top:1px solid rgba(255,255,255,.08);font-size:11.5px;color:#7e93b3;line-height:1.7}
+.side-foot b{color:#c8d6ea;font-weight:600}
+#topbar{position:sticky;top:0;z-index:40;background:rgba(242,245,250,.88);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:13px 34px;display:flex;align-items:center;gap:16px}
+#topbar h1{font-size:17px;font-weight:700;color:var(--navy-900)}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.progress-pill{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:30px;padding:5px 14px 5px 8px;font-size:12.5px;color:var(--muted)}
+.progress-pill .bar{width:110px;height:6px;border-radius:4px;background:#e8edf5;overflow:hidden}
+.progress-pill .bar i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#3b82f6,#06b6d4);transition:width .5s}
+.tb-date{font-size:12px;color:var(--faint)}
+.view{display:none;padding:26px 34px 70px;max-width:1180px;margin:0 auto;animation:fadein .3s}
+.view.active{display:block}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.kicker{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;letter-spacing:2px;color:var(--blue-600);margin-bottom:8px}
+.kicker::before{content:"";width:18px;height:2px;background:var(--blue-600);border-radius:2px}
+.sec{margin-bottom:36px}
+.sec>h2{font-size:21px;color:var(--navy-900);margin-bottom:4px;letter-spacing:.5px}
+.sec>.desc{color:var(--muted);font-size:13.5px;margin-bottom:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}.g4{grid-template-columns:repeat(4,1fr)}
+.pad{padding:20px 22px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;padding:2px 10px;border-radius:20px;font-weight:600;line-height:1.7;white-space:nowrap}
+.chip.blue{background:var(--blue-100);color:#1d4ed8}.chip.green{background:var(--green-bg);color:var(--green)}.chip.amber{background:var(--amber-bg);color:var(--amber)}.chip.red{background:var(--red-bg);color:var(--red)}.chip.gray{background:#eef2f8;color:var(--muted)}.chip.gold{background:var(--gold-bg);color:var(--gold);border:1px solid #fde68a}.chip.violet{background:#f3e8ff;color:var(--violet)}.chip.teal{background:#ccfbf1;color:var(--teal)}
+.btn{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid #cfdbec;color:#1e4e8f;font-size:13px;font-weight:600;padding:8px 16px;border-radius:9px;cursor:pointer;transition:all .18s}
+.btn:hover{border-color:var(--blue-500);color:var(--blue-600);box-shadow:0 2px 10px rgba(59,130,246,.15)}
+.btn.primary{background:linear-gradient(135deg,#2563eb,#1d4ed8);border:none;color:#fff}
+.btn.sm{padding:5px 12px;font-size:12px;border-radius:7px}
+.btn svg{width:14px;height:14px}
+.hero{position:relative;overflow:hidden;border-radius:18px;background:linear-gradient(120deg,var(--navy-950) 0%,var(--navy-800) 55%,#1d4ed8 130%);color:#fff;padding:34px 38px 28px;box-shadow:var(--shadow-lg)}
+.hero::after{content:"";position:absolute;right:-70px;top:-90px;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,.35),transparent 65%)}
+.hero::before{content:"";position:absolute;right:120px;bottom:-120px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(6,182,212,.22),transparent 65%)}
+.hero .hk{font-size:12px;letter-spacing:3px;color:#8fb4e8;font-weight:600;margin-bottom:10px}
+.hero h2{font-size:24px;line-height:1.55;font-weight:800;max-width:840px;position:relative;z-index:1}
+.hero .sub{font-size:15px;color:#b9cdf0;margin-top:6px;position:relative;z-index:1}
+.hero .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;position:relative;z-index:1}
+.hero .meta span{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.14);padding:4px 13px;border-radius:20px;font-size:12.5px;color:#dbe7f8}
+.hero .meta span b{color:#fff;font-weight:600}
+.mainline{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:0;align-items:stretch;margin-top:14px}
+.mainline .step{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px 20px 16px;box-shadow:var(--shadow);position:relative}
+.mainline .step .no{position:absolute;top:-11px;left:18px;background:linear-gradient(135deg,#2563eb,#06b6d4);color:#fff;font-size:11px;font-weight:700;padding:2px 10px;border-radius:20px;letter-spacing:1px}
+.mainline .step b{display:block;font-size:15.5px;color:var(--navy-900);margin:6px 0 4px}
+.mainline .step p{font-size:12.5px;color:var(--muted);line-height:1.65}
+.mainline .arr{display:flex;align-items:center;padding:0 10px;color:#93a8c6;font-size:20px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:16px 20px;box-shadow:var(--shadow)}
+.stat .v{font-size:23px;font-weight:800;color:var(--navy-900)}
+.stat .v small{font-size:13px;color:var(--muted);font-weight:600}
+.stat .k{font-size:12.5px;color:var(--muted)}
+.quick{cursor:pointer;transition:all .18s;position:relative;overflow:hidden}
+.quick:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(12,33,56,.12);border-color:#c8d8f0}
+.quick .arr{position:absolute;right:16px;top:14px;color:#b6c6de;transition:all .18s}
+.quick:hover .arr{color:var(--blue-600);transform:translateX(3px)}
+.quick b{display:block;font-size:15px;color:var(--navy-900);margin-bottom:3px}
+.quick p{font-size:12.5px;color:var(--muted);line-height:1.6}
+.tline{position:relative;padding-left:24px}
+.tline::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,#3b82f6,#bfdbfe);border-radius:2px}
+.tline .tl{position:relative;padding:0 0 14px 12px}
+.tline .tl::before{content:"";position:absolute;left:-22px;top:7px;width:10px;height:10px;border-radius:50%;background:#fff;border:2.5px solid #3b82f6}
+.tline .tl .d{font-size:12px;color:var(--blue-600);font-weight:700}
+.tline .tl p{font-size:13px;color:#334155}
+.twrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:#fff}
+table.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{background:#f6f9fd;color:var(--navy-800);font-weight:700;text-align:left;padding:10px 14px;border-bottom:1.5px solid #dbe4f0;white-space:nowrap;font-size:12.5px}
+.tbl td{padding:9px 14px;border-bottom:1px solid #edf1f7;color:#334155;vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:#f8fafd}
+.thesis-wrap{display:grid;grid-template-columns:225px 1fr;gap:24px;align-items:start}
+#thesis-toc{position:sticky;top:76px;max-height:calc(100vh - 100px);overflow:auto;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:12.5px}
+#thesis-toc a{display:block;padding:4px 9px;border-radius:7px;color:#42567a;line-height:1.5;cursor:pointer}
+#thesis-toc a.h1{font-weight:700;color:var(--navy-800);margin-top:6px}
+#thesis-toc a.h2{padding-left:20px;color:var(--muted)}
+#thesis-toc a:hover{background:var(--blue-100);color:var(--blue-600)}
+.thesis-body{background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:44px 52px;font-family:"Noto Serif SC",Georgia,"SimSun",serif;line-height:2.0;font-size:15px;color:#243044}
+.thesis-body h1{font-size:21px;color:var(--navy-900);margin:38px 0 16px;padding-top:22px;border-top:1px solid #e8edf5;letter-spacing:1px;scroll-margin-top:80px}
+.thesis-body h1:first-child{border-top:none;margin-top:0;padding-top:0}
+.thesis-body h2{font-size:17.5px;color:var(--navy-800);margin:26px 0 10px;scroll-margin-top:80px}
+.thesis-body h3{font-size:15.5px;color:#1e4e8f;margin:20px 0 8px}
+.thesis-body h4{font-size:14.5px;color:#334155;margin:16px 0 6px}
+.thesis-body p{text-align:justify;margin:10px 0}
+.thesis-body strong{color:var(--navy-800)}
+.thesis-body .formula{background:#f6f9fd;border:1px solid #e3ebf6;border-radius:10px;padding:12px 20px;margin:14px 0;text-align:center;font-family:"Cambria Math",Georgia,serif;font-size:15.5px;color:#123253;overflow-x:auto}
+.thesis-body .im{font-family:"Cambria Math",Georgia,serif;font-style:italic}
+.thesis-body blockquote{border-left:3px solid #b6cdf0;background:#f6f9fd;padding:10px 16px;border-radius:0 8px 8px 0;color:#42567a;font-size:13.5px;margin:12px 0}
+.thesis-body .notice{background:var(--gold-bg);border:1px solid #fde68a;border-radius:10px;padding:14px 18px;font-size:13.5px;color:#784307;margin:14px 0}
+.thesis-body .keywords{color:var(--muted);font-size:13.5px}
+.thesis-body ul,.thesis-body ol{margin:8px 0 8px 26px}
+.thesis-body li{margin:4px 0}
+.thesis-body code{background:#eef2f8;padding:1px 6px;border-radius:5px;font-size:12.5px;font-family:Consolas,monospace;color:#0f3a6e}
+.thesis-body .twrap{margin:14px 0}
+.thesis-body .tbl{font-size:12.8px;font-family:"Microsoft YaHei",sans-serif}
+.thesis-body sup,.thesis-body sub{font-size:11px}
+.modal{position:fixed;inset:0;z-index:100;display:none;align-items:flex-start;justify-content:center;background:rgba(8,23,41,.55);backdrop-filter:blur(4px);overflow:auto;padding:40px 20px}
+.modal.show{display:flex}
+.modal-panel{background:#fff;border-radius:18px;max-width:880px;width:100%;box-shadow:var(--shadow-lg);animation:fadein .25s;overflow:hidden}
+.modal-head{display:flex;align-items:flex-start;gap:14px;padding:22px 26px 16px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#f8fafd,#fff)}
+.modal-head h3{font-size:17px;color:var(--navy-900);line-height:1.5}
+.modal-head .x{margin-left:auto;cursor:pointer;border:none;background:#eef2f8;width:32px;height:32px;border-radius:9px;font-size:15px;color:var(--muted);flex-shrink:0}
+.modal-head .x:hover{background:#e2e9f3;color:var(--red)}
+.modal-body{padding:22px 26px 26px;max-height:70vh;overflow:auto}
+.meta-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:14px}
+.meta-grid .mg{background:#f7f9fd;border:1px solid #e8eef7;border-radius:10px;padding:9px 13px}
+.meta-grid .mg b{display:block;font-size:11px;color:var(--faint);letter-spacing:1px;font-weight:600}
+.meta-grid .mg span{font-size:13px;color:#243044}
+.cite-box{background:#f6f8fc;border-left:3px solid #3b82f6;border-radius:0 10px 10px 0;padding:12px 16px;font-size:13px;color:#33415a;margin:12px 0;line-height:1.9}
+.role-box{background:var(--gold-bg);border:1px solid #fde68a;border-radius:10px;padding:12px 16px;font-size:13px;color:#784307;margin:12px 0}
+.refgrid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.refcard{background:#fff;border:1px solid var(--line);border-radius:13px;padding:16px 18px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;transition:all .18s}
+.refcard:hover{border-color:#c8d8f0;box-shadow:0 6px 18px rgba(12,33,56,.10)}
+.refcard .rt{font-size:14.5px;font-weight:700;color:var(--navy-900);line-height:1.5}
+.refcard .rs{font-size:12.5px;color:var(--muted)}
+.refcard .acts{display:flex;gap:8px;margin-top:4px;flex-wrap:wrap}
+.ref-tags{display:flex;gap:6px;flex-wrap:wrap}
+.refbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.refbar input{flex:1;min-width:200px;border:1px solid var(--line);border-radius:9px;padding:9px 14px;font-size:13px;outline:none;background:#fff}
+.refbar input:focus{border-color:var(--blue-500)}
+.fchip{cursor:pointer;border:1px solid var(--line);background:#fff;border-radius:20px;padding:5px 14px;font-size:12.5px;color:var(--muted);font-weight:600}
+.fchip.on{background:var(--navy-800);border-color:var(--navy-800);color:#fff}
+.ppt-item{border:1px solid var(--line);border-radius:12px;background:#fff;margin-bottom:10px;overflow:hidden}
+.ppt-item .ph{display:flex;align-items:center;gap:12px;padding:13px 18px;cursor:pointer;user-select:none}
+.ppt-item .ph:hover{background:#f8fafd}
+.ppt-item .pno{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#1a4166,#2563eb);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ppt-item .pt{font-size:14px;font-weight:600;color:var(--navy-900)}
+.ppt-item .caret{margin-left:auto;color:#93a8c6;transition:transform .2s}
+.ppt-item.open .caret{transform:rotate(90deg)}
+.ppt-item .pb{display:none;padding:4px 20px 16px 60px;font-size:13px;color:#33415a;line-height:1.9}
+.ppt-item.open .pb{display:block}
+.stage{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:18px 22px;margin-bottom:13px}
+.stage .shead{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.stage .sno{width:30px;height:30px;border-radius:9px;background:#eef4fd;color:#1d4ed8;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.stage .sname{font-size:15.5px;font-weight:700;color:var(--navy-900)}
+.stage .speriod{font-size:12.5px;color:var(--muted)}
+.stage ul{margin:10px 0 8px 22px;font-size:13px;color:#33415a}
+.stage li{margin:3px 0}
+.stage .note{margin-top:8px;font-size:13px;color:#42567a;background:#f7f9fd;border:1px dashed #d5e0f0;border-radius:9px;padding:8px 13px;outline:none;min-height:20px}
+.stage .note:empty::before{content:"点击填写阶段备注…";color:#a8b6cb}
+.st-status{cursor:pointer;user-select:none;transition:all .15s}
+.mst{display:flex;gap:12px;align-items:flex-start;padding:9px 0;border-bottom:1px dashed #e8edf5}
+.mst:last-child{border-bottom:none}
+.mst .md{font-size:12px;color:var(--blue-600);font-weight:700;flex-shrink:0;width:76px;margin-top:2px}
+.mst p{font-size:13px;color:#33415a}
+.ax-item{display:flex;gap:12px;align-items:center;padding:10px 4px;border-bottom:1px dashed #e8edf5}
+.ax-item:last-child{border-bottom:none}
+.ax-item input{width:17px;height:17px;accent-color:#059669;cursor:pointer;flex-shrink:0}
+.ax-item .sec{font-size:12px;font-weight:700;color:#1d4ed8;background:#eef4fd;padding:1px 9px;border-radius:6px;flex-shrink:0}
+.ax-item p{font-size:13px;color:#33415a;flex:1}
+.ax-item.done p{text-decoration:line-through;color:#94a3b8}
+.chart-box{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px}
+.chart-box h4{font-size:14px;color:var(--navy-900);margin-bottom:8px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.bignum{font-size:25px;font-weight:800;color:var(--navy-900);line-height:1.35}
+.biglabel{font-size:12.5px;color:var(--muted)}
+.mbar{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted);margin:4px 0}
+.mbar .mb{height:9px;border-radius:5px;background:linear-gradient(90deg,#3b82f6,#06b6d4);opacity:.85}
+.techroute{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;overflow-x:auto}
+.techroute svg{min-width:900px;width:100%;height:auto}
+.trbox{fill:#fff;stroke:#b9cbe8;stroke-width:1.3;rx:10}
+.trbox-b{fill:#eef4fd;stroke:#93b7ee}
+.trbox-t{fill:#ecfdf5;stroke:#6ee7b7}
+.trbox-y{fill:#fffbeb;stroke:#fcd34d}
+.trtxt{font-size:12.5px;fill:#123253;font-weight:600}
+.trsub{font-size:10.5px;fill:#64748b}
+.tra{stroke:#7e9cc9;stroke-width:1.4;fill:none;marker-end:url(#arrow)}
+@media(max-width:1000px){.refgrid{grid-template-columns:1fr}.thesis-wrap{grid-template-columns:1fr}#thesis-toc{position:static;max-height:220px}.mainline{grid-template-columns:1fr}.mainline .arr{transform:rotate(90deg);justify-content:center;padding:4px 0}.g3,.g4{grid-template-columns:1fr 1fr}}
+@media print{#sidebar,#topbar{display:none}#main{margin-left:0}}
+</style>
+</head>
+<body>
+<div id="app">
+<aside id="sidebar">
+  <div class="logo"><div class="mark"><div class="badge">论文</div><div><b>毕业论文工作台</b><small>MIMIC-IV · 30天再入院预测</small></div></div></div>
+  <nav class="nav">
+    <div class="nav-item" data-v="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>总览</div>
+    <div class="nav-item" data-v="framework"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5v4M12 11.5L6 16.5M12 11.5l6 5"/></svg>研究框架</div>
+    <div class="nav-item" data-v="thesis"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 11h7M9 15h7"/></svg>论文全文<span class="cnt">7章</span></div>
+    <div class="nav-item" data-v="progress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>研究进度<span class="cnt">6阶段</span></div>
+    <div class="nav-item" data-v="data"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>数据与结果</div>
+    <div class="nav-item" data-v="refs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V5a2 2 0 012-2h13v16H6a2 2 0 000 4h13"/><path d="M9 7h6"/></svg>参考文献<span class="cnt">24</span></div>
+  </nav>
+  <div class="side-foot"><b>刘梦羽</b> · 32501006<br>应用统计硕士<br>指导教师：廖华夫<br>大连理工大学 数学科学学院</div>
+</aside>
+<main id="main">
+<header id="topbar"><div><h1 id="tb-title">总览</h1><div class="crumb" id="tb-crumb">开题阶段 · 研究工作台</div></div>
+<div class="tb-right"><div class="progress-pill">总进度<span class="bar"><i id="pb-fill" style="width:8%"></i></span><b id="pb-pct" style="color:#1d4ed8">8%</b></div><span class="tb-date" id="tb-date"></span></div></header>
+<!-- ============ 总览 ============ -->
+<section class="view active" id="view-overview">
+<div class="hero">
+<div class="hk">大连理工大学 · 硕士学位论文 · 开题阶段展示</div>
+<h2>基于 MIMIC-IV 的 30 天再入院风险预测研究</h2>
+<div class="sub">——融合结构化数据与临床文本的集成学习方法</div>
+<div class="meta"><span>答辩人 <b>刘梦羽</b></span><span>学号 <b>32501006</b></span><span>专业 <b>应用统计</b></span><span>指导教师 <b>廖华夫</b></span><span>开题答辩 <b>2026.11.05</b></span></div>
+</div>
+<div class="sec" style="margin-top:26px">
+<span class="kicker">研究主线</span>
+<div class="mainline">
+<div class="step"><span class="no">STEP 1</span><b>结构化数据能预测多少？</b><p>LR / RF / XGBoost / LightGBM / Stacking 五类模型回答 RQ1、RQ2，评估集成学习的增益与稳定性</p></div>
+<div class="arr">➜</div>
+<div class="step"><span class="no">STEP 2</span><b>临床文本还能增加多少？</b><p>出院小结以 TF-IDF / Word2Vec / ClinicalBERT 三种表示融入 Stacking，严格评估文本增量价值（RQ3、RQ4）</p></div>
+<div class="arr">➜</div>
+<div class="step"><span class="no">STEP 3</span><b>模型为什么这样预测？</b><p>SHAP 全局 + 典型患者个体解释，校准与决策曲线分析，回答"敢不敢用、怎么用"</p></div>
+</div>
+</div>
+<div class="sec">
+<span class="kicker">关键数字</span>
+<div class="grid g4" style="margin-top:14px">
+<div class="stat"><div class="v" id="st-adm">—</div><div class="k">住院记录（MIMIC-IV v3.1）</div></div>
+<div class="stat"><div class="v">9 <small>组</small></div><div class="k">对照实验（Model 1–9）</div></div>
+<div class="stat"><div class="v">3 <small>种</small></div><div class="k">文本表示策略</div></div>
+<div class="stat"><div class="v">24 <small>条</small></div><div class="k">参考文献（13 篇本地PDF）</div></div>
+</div>
+</div>
+<div class="sec">
+<span class="kicker">快速入口</span>
+<div class="grid g4" style="margin-top:14px">
+<div class="card pad quick" data-go="framework"><span class="arr">➜</span><b>研究框架</b><p>背景 · 四个研究问题 · 三阶段内容 · 技术路线 · 创新点</p></div>
+<div class="card pad quick" data-go="thesis"><span class="arr">➜</span><b>论文全文</b><p>七章框架重写稿在线阅读，与本地 docx 同步</p></div>
+<div class="card pad quick" data-go="data"><span class="arr">➜</span><b>数据与结果</b><p>MIMIC-IV 核验统计 + Demo 流程验证图表</p></div>
+<div class="card pad quick" data-go="progress"><span class="arr">➜</span><b>研究进度</b><p>六阶段计划 · 里程碑 · 待补充清单（可编辑）</p></div>
+</div>
+</div>
+<div class="sec">
+<span class="kicker">已完成里程碑</span>
+<div class="card pad" style="margin-top:14px"><div class="tline" id="ms-list"></div></div>
+</div>
+</section>
+<!-- ============ 研究框架 ============ -->
+<section class="view" id="view-framework">
+<div class="sec">
+<span class="kicker">SECTION 01</span><h2>研究背景与意义</h2><div class="desc">来自开题汇报 PPT-4 第 3–5 页</div>
+<div class="grid g3">
+<div class="card pad"><span class="chip blue">临床现实</span><h3 style="margin:10px 0 6px;font-size:15.5px;color:var(--navy-900)">再入院率高、代价大</h3><p style="font-size:13px;color:var(--muted)">全因 30 天再入院率约 15%~20%，美国 Medicare 每年相关支出约 260 亿美元；我国三级医院出院 30 天非计划再入院率约 9.6%，被纳入三级医院评审与 DRG/DIP 支付考核。早期识别高危患者可指导出院计划与随访。</p></div>
+<div class="card pad"><span class="chip teal">数据基础</span><h3 style="margin:10px 0 6px;font-size:15.5px;color:var(--navy-900)">EHR 与公开数据库成熟</h3><p style="font-size:13px;color:var(--muted)">现有模型区分能力普遍有限（c 统计量约 0.71~0.74，Kansagara 2011 / Mahmoudi 2020）。MIMIC-IV v3.1 提供 223,452 名患者、546,028 条住院记录，MIMIC-IV-Note 提供出院小结文本，为多源融合研究提供公开、可复现的数据底座。</p></div>
+<div class="card pad"><span class="chip violet">科学问题</span><h3 style="margin:10px 0 6px;font-size:15.5px;color:var(--navy-900)">文本的增量价值不明</h3><p style="font-size:13px;color:var(--muted)">临床文本蕴含用药调整、社会因素、出院去向等结构化字段之外的信息，但"文本能带来多少增量、以哪种表示方式、对可解释性有何影响"仍缺乏统一框架下的严格评估——这正是本研究三阶段主线。</p></div>
+</div>
+</div>
+<div class="sec">
+<span class="kicker">SECTION 02</span><h2>研究目标与四个研究问题</h2><div class="desc">目标：在统一、可复现的集成学习框架下，系统量化"结构化数据 + 出院小结文本"的预测效能与增量价值，并给出可解释结果</div>
+<div class="grid g2">
+<div class="card pad"><span class="chip blue">RQ1 · 对应第四章</span><p style="font-size:13.5px;margin-top:8px;color:#33415a">仅用结构化 EHR 数据，机器学习模型（RF / XGBoost / LightGBM）能否显著优于传统逻辑回归？</p></div>
+<div class="card pad"><span class="chip blue">RQ2 · 对应第四章</span><p style="font-size:13.5px;margin-top:8px;color:#33415a">以 LR 为元模型的 Stacking 集成，能否在 AUROC / AUPRC 上进一步提升性能？</p></div>
+<div class="card pad"><span class="chip violet">RQ3 · 对应第五章</span><p style="font-size:13.5px;margin-top:8px;color:#33415a">在结构化特征基础上融合出院小结文本（三种表示），能否显著提升预测性能？不同文本表示是否存在差异？</p></div>
+<div class="card pad"><span class="chip violet">RQ4 · 对应第五章</span><p style="font-size:13.5px;margin-top:8px;color:#33415a">在文本可用子队列中，文本特征的增量价值有多大？在高危与边缘病例中是否提供结构化数据之外的判别信息？</p></div>
+</div>
+</div>
+<div class="sec">
+<span class="kicker">SECTION 03</span><h2>三阶段研究内容</h2><div class="desc">与开题答辩 PPT-4 第 7 页一致</div>
+<div class="grid g3">
+<div class="card pad"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="width:28px;height:28px;border-radius:8px;background:#eef4fd;color:#1d4ed8;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">Ⅰ</span><b style="font-size:15px;color:var(--navy-900)">结构化数据预测建模</b></div><p style="font-size:13px;color:var(--muted)">MIMIC-IV 队列构建（纳入/排除）→ 30 天再入院结局标注 → 五类特征工程（人口学/入院/诊断/实验室/治疗）→ LR/RF/XGBoost/LightGBM/Stacking 五模型对照 → DeLong + Bootstrap 检验（回答 RQ1、RQ2）</p></div>
+<div class="card pad"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="width:28px;height:28px;border-radius:8px;background:#f3e8ff;color:#7c3aed;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">Ⅱ</span><b style="font-size:15px;color:var(--navy-900)">临床文本融合</b></div><p style="font-size:13px;color:var(--muted)">MIMIC-IV-Note 出院小结提取 → 时间口径约束（charttime ≤ dischtime）→ 文本清洗与截断 → TF-IDF / Word2Vec / ClinicalBERT 三种表示 → 融入统一 Stacking 框架 → 增量价值与统计检验（回答 RQ3、RQ4）</p></div>
+<div class="card pad"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="width:28px;height:28px;border-radius:8px;background:#ecfdf5;color:#059669;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">Ⅲ</span><b style="font-size:15px;color:var(--navy-900)">可解释性分析</b></div><p style="font-size:13px;color:var(--muted)">最优模型 SHAP 全局特征重要性 → 典型患者个体解释 → 校准曲线与决策曲线 → 类别不平衡敏感性分析（SMOTE）→ 面向临床应用的可靠性讨论</p></div>
+</div>
+</div>
+<div class="sec">
+<span class="kicker">SECTION 04</span><h2>对照实验设计（Model 1–9）</h2><div class="desc">统一 Stacking 框架下的三组对照；正式实验于阶段三、四在完整数据上运行</div>
+<div class="twrap"><table class="tbl"><thead><tr><th>编号</th><th>特征输入</th><th>模型</th><th>对照目的</th><th>回答</th><th>状态</th></tr></thead><tbody>
+<tr><td><b>Model 1</b></td><td>结构化</td><td>逻辑回归 LR</td><td>传统统计基线</td><td>RQ1</td><td><span class="chip gray">待正式实验</span></td></tr>
+<tr><td><b>Model 2</b></td><td>结构化</td><td>随机森林 RF</td><td>单模型比较</td><td>RQ1</td><td><span class="chip gray">待正式实验</span></td></tr>
+<tr><td><b>Model 3</b></td><td>结构化</td><td>XGBoost</td><td>单模型比较</td><td>RQ1</td><td><span class="chip gray">待正式实验</span></td></tr>
+<tr><td><b>Model 4</b></td><td>结构化</td><td>LightGBM</td><td>单模型比较</td><td>RQ1</td><td><span class="chip gray">待正式实验</span></td></tr>
+<tr><td><b>Model 5</b></td><td>结构化</td><td>Stacking（4基模型 + LR 元模型）</td><td>集成增益</td><td>RQ2</td><td><span class="chip gray">待正式实验</span></td></tr>
+<tr><td><b>Model 6</b></td><td>结构化 + TF-IDF</td><td>Stacking</td><td>传统文本表示增量</td><td>RQ3/RQ4</td><td><span class="chip gray">待正式实验</span></td></tr>
+<tr><td><b>Model 7</b></td><td>结构化 + Word2Vec</td><td>Stacking</td><td>分布式语义表示增量</td><td>RQ3/RQ4</td><td><span class="chip gray">待正式实验</span></td></tr>
+<tr><td><b>Model 8</b></td><td>结构化 + ClinicalBERT</td><td>Stacking</td><td>上下文语义表示增量</td><td>RQ3/RQ4</td><td><span class="chip gray">待正式实验</span></td></tr>
+<tr><td><b>Model 9</b></td><td>最优组合</td><td>Stacking（最终模型）</td><td>SHAP 解释与可靠性分析</td><td>—</td><td><span class="chip gray">待正式实验</span></td></tr>
+</tbody></table></div>
+</div>
+<div class="sec">
+<span class="kicker">SECTION 05</span><h2>技术路线</h2><div class="desc">与 PPT-4 第 13 页技术路线图对应</div>
+<div class="techroute"><svg viewBox="0 0 960 430" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#7e9cc9"/></marker></defs>
+<text x="24" y="30" font-size="13" font-weight="700" fill="#1a4166">① 数据层</text>
+<rect class="trbox" x="24" y="42" width="180" height="52" rx="10"/><text class="trtxt" x="114" y="64" text-anchor="middle">MIMIC-IV v3.1</text><text class="trsub" x="114" y="82" text-anchor="middle">546,028 住院记录</text>
+<rect class="trbox" x="24" y="110" width="180" height="52" rx="10"/><text class="trtxt" x="114" y="132" text-anchor="middle">MIMIC-IV-Note 2.2</text><text class="trsub" x="114" y="150" text-anchor="middle">331,793 出院小结</text>
+<text x="24" y="196" font-size="13" font-weight="700" fill="#1a4166">② 队列与特征层</text>
+<rect class="trbox-b" x="24" y="208" width="180" height="50" rx="10"/><text class="trtxt" x="114" y="229" text-anchor="middle">队列构建 · 结局标注</text><text class="trsub" x="114" y="246" text-anchor="middle">纳入排除 · 30 天再入院</text>
+<rect class="trbox-b" x="250" y="208" width="180" height="50" rx="10"/><text class="trtxt" x="340" y="229" text-anchor="middle">结构化特征工程</text><text class="trsub" x="340" y="246" text-anchor="middle">人口学/入院/诊断/检验/治疗</text>
+<rect class="trbox-b" x="250" y="274" width="180" height="50" rx="10"/><text class="trtxt" x="340" y="295" text-anchor="middle">出院小结文本清洗</text><text class="trsub" x="340" y="312" text-anchor="middle">charttime ≤ dischtime</text>
+<rect class="trbox-y" x="476" y="274" width="170" height="50" rx="10"/><text class="trtxt" x="561" y="295" text-anchor="middle">三种文本表示</text><text class="trsub" x="561" y="312" text-anchor="middle">TF-IDF / W2V / BERT</text>
+<text x="700" y="196" font-size="13" font-weight="700" fill="#1a4166">③ 模型层</text>
+<rect class="trbox-b" x="700" y="208" width="180" height="50" rx="10"/><text class="trtxt" x="790" y="229" text-anchor="middle">统一 Stacking 框架</text><text class="trsub" x="790" y="246" text-anchor="middle">LR/RF/XGB/LGBM + LR元</text>
+<rect class="trbox" x="700" y="274" width="180" height="50" rx="10"/><text class="trtxt" x="790" y="295" text-anchor="middle">Model 1–9 对照实验</text><text class="trsub" x="790" y="312" text-anchor="middle">文本可用子队列</text>
+<text x="24" y="368" font-size="13" font-weight="700" fill="#1a4166">④ 评价与解释层</text>
+<rect class="trbox-t" x="24" y="380" width="180" height="44" rx="10"/><text class="trtxt" x="114" y="406" text-anchor="middle">AUROC / AUPRC</text>
+<rect class="trbox-t" x="250" y="380" width="180" height="44" rx="10"/><text class="trtxt" x="340" y="406" text-anchor="middle">DeLong / Bootstrap</text>
+<rect class="trbox-t" x="476" y="380" width="170" height="44" rx="10"/><text class="trtxt" x="561" y="406" text-anchor="middle">SHAP 可解释性</text>
+<rect class="trbox-t" x="700" y="380" width="180" height="44" rx="10"/><text class="trtxt" x="790" y="406" text-anchor="middle">校准 · 决策曲线</text>
+<path class="tra" d="M204 68 H 250 M204 136 C 230 136 250 190 250 222 M204 233 H 250 M430 233 H 700 M430 299 H 476 M646 299 C 676 299 680 258 700 258 M790 258 V 274 M114 258 V 380 M340 258 V 380 M561 324 V 380 M790 324 V 380"/>
+</svg></div>
+</div>
+<div class="sec">
+<span class="kicker">SECTION 06</span><h2>创新点</h2><div class="desc">PPT-4 第 14 页</div>
+<div class="grid g3">
+<div class="card pad"><span class="chip blue">创新 1</span><h3 style="margin:10px 0 6px;font-size:15px;color:var(--navy-900)">统一框架下的文本增量价值严格评估</h3><p style="font-size:13px;color:var(--muted)">在同一 Stacking 框架、同一队列划分下，对比 TF-IDF / Word2Vec / ClinicalBERT 三种文本表示的增量贡献，用 DeLong 检验与 Bootstrap 置信区间给出统计学结论，而非仅报告单点性能。</p></div>
+<div class="card pad"><span class="chip teal">创新 2</span><h3 style="margin:10px 0 6px;font-size:15px;color:var(--navy-900)">严格的时间口径防泄漏设计</h3><p style="font-size:13px;color:var(--muted)">出院小结仅保留 charttime ≤ dischtime 的内容；针对文本可用性偏差：主分析在文本可用子队列，敏感性分析在结构化全队列，避免"文本缺失 = 高风险人群缺失"的选择偏倚。</p></div>
+<div class="card pad"><span class="chip violet">创新 3</span><h3 style="margin:10px 0 6px;font-size:15px;color:var(--navy-900)">性能与可解释性并重的评价体系</h3><p style="font-size:13px;color:var(--muted)">区分能力（AUROC/AUPRC）+ 校准 + 临床决策曲线 + SHAP 全局/个体解释四层评价，回答"模型为什么这样预测"，面向临床落地给出风险分层的可操作建议。</p></div>
+</div>
+</div>
+<div class="sec">
+<span class="kicker">SECTION 07</span><h2>关键问题与风险预案</h2><div class="desc">PPT-4 第 15 页 · 供开题答辩质询</div>
+<div class="grid g3">
+<div class="card pad" style="border-top:3px solid #3b82f6"><b style="font-size:14px;color:var(--navy-900)">数据泄漏</b><p style="font-size:12.5px;color:var(--muted);margin-top:6px">文本时间边界 + OOF 折外预测生成 Stacking 元特征 + 患者级数据集划分</p></div>
+<div class="card pad" style="border-top:3px solid #f59e0b"><b style="font-size:14px;color:var(--navy-900)">类别不平衡</b><p style="font-size:12.5px;color:var(--muted);margin-top:6px">class_weight 主方案，SMOTE 作为敏感性分析，同时报告 AUPRC 与 PR 曲线</p></div>
+<div class="card pad" style="border-top:3px solid #10b981"><b style="font-size:14px;color:var(--navy-900)">文本可用偏差</b><p style="font-size:12.5px;color:var(--muted);margin-top:6px">文本可用/不可用两组人群画像对比 + 主/敏感性分析双轨报告</p></div>
+<div class="card pad" style="border-top:3px solid #7c3aed"><b style="font-size:14px;color:var(--navy-900)">多次比较</b><p style="font-size:12.5px;color:var(--muted);margin-top:6px">DeLong 检验 + Bonferroni 校正，Bootstrap 1000 次重采样置信区间</p></div>
+<div class="card pad" style="border-top:3px solid #ef4444"><b style="font-size:14px;color:var(--navy-900)">BERT 计算资源</b><p style="font-size:12.5px;color:var(--muted);margin-top:6px">句子级均值池化 + 最大 512 token 截断 + 批量编码缓存，必要时换用 DistilBERT</p></div>
+<div class="card pad" style="border-top:3px solid #64748b"><b style="font-size:14px;color:var(--navy-900)">可复现性</b><p style="font-size:12.5px;color:var(--muted);margin-top:6px">固定随机种子 · MIMIC-IV 固定版本 · 全流程脚本化 · 结果目录化输出</p></div>
+</div>
+</div>
+<div class="sec">
+<span class="kicker">SECTION 08</span><h2>开题答辩 PPT-4 大纲</h2><div class="desc">点击展开各页文字内容 · 框架与研究计划以 PPT-4 为准</div>
+<div style="display:flex;gap:10px;margin-bottom:14px"><button class="btn primary" onclick="downloadPpt()">下载 PPT-4（PowerPoint）</button><span class="chip gray" style="align-self:center">共 <span id="ppt-count">18</span> 页 · 图形细节请查看原文件</span></div>
+<div id="ppt-list"></div>
+</div>
+</section>
+<!-- ============ 论文全文 ============ -->
+<section class="view" id="view-thesis">
+<div class="sec" style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap">
+<div><span class="kicker">THESIS</span><h2 style="font-size:20px">论文全文 · 框架重写稿</h2><div class="desc" style="margin:0">与「论文初始版本/论文初始版本-4.docx」同步 · 修订日期 2026-10-31</div></div>
+<div style="margin-left:auto;display:flex;gap:10px"><a class="btn primary" href="论文初始版本/论文初始版本-4.docx" target="_blank">打开 Word 版论文</a><a class="btn" href="论文初始版本/论文初始版本-框架重写稿.md" target="_blank">Markdown 源文件</a></div>
+</div>
+<div class="thesis-wrap">
+<div id="thesis-toc"></div>
+<div class="thesis-body" id="thesis-article"><div class="notice"><strong>版本说明</strong>：本稿依据已明确的正式开题报告框架，以《论文初始版本-2.docx》《论文初始版本-3.md》《论文初版.md》的原有内容为基础，重新梳理章节结构与研究定位，并补充国内研究现状。已核实 MIMIC-IV v3.1 与 MIMIC-IV-Note v2.2 完整数据的版本、读取可行性和跨表匹配情况；完整队列构建、结局标注、特征工程和模型实验尚未开展。本文不报告未经实际运行的模型指标，也不预先认定某种算法或文本表示方法效果最好。全部参考文献逐条经 Crossref、arXiv、期刊官网或可检索的出版信息核实，未能确认完整出处的条目已明确标注“待核实”。</div>
+<h1 id="h4">摘要</h1>
+<p>出院后 30 天内再次住院是临床风险管理和医疗资源利用研究中的常见结局。利用电子健康记录识别再入院风险较高的患者，有助于为出院管理和后续随访提供参考。但风险预测结果会受到研究人群、结局定义、预测时点和数据质量等因素影响，再入院也不必然意味着住院期间存在质量问题。</p>
+<p>本研究拟基于 MIMIC-IV v3.1 与 MIMIC-IV-Note v2.2 数据库，构建成年住院患者出院后 30 天内再次住院的风险预测研究流程。研究按“结构化数据基线模型—集成学习比较—临床文本融合—增量价值分析—模型可靠性评价”的路径递进展开：首先利用人口学、诊断、检验、生命体征、住院过程和既往医疗利用等结构化变量建立预测模型，比较 Logistic Regression、Random Forest、XGBoost、LightGBM 四种单模型，并评估 Stacking 集成模型相对于单模型的表现；随后从 MIMIC-IV-Note 提取与指数住院对应的出院小结，采用 TF-IDF、Word2Vec 和 ClinicalBERT 三种文本表示方法构建文本特征，在文本可用子队列内比较“仅结构化”和“结构化+文本”模型的性能差异，评估临床文本是否带来额外预测价值。模型评价将以 AUROC 为主要区分能力指标，同时报告 AUPRC、Precision、Recall、F1、Brier Score 与校准曲线；AUROC 差异采用 DeLong 检验，AUPRC 差异采用 Bootstrap 置信区间。在此基础上，拟使用 SHAP 对最终模型进行全局特征贡献分析与个体预测解释。</p>
+<p>截至本稿修订时，完整数据的队列构建和模型训练尚未完成，因此本文不报告模型性能数值，也不对模型优劣作出结论。研究将重点控制患者级数据划分、预测时点与临床文本可用时间之间的关系，把文本融合效果视为需要实验验证的问题而非预设结果。</p>
+<p class="keywords"><strong>关键词</strong>：30 天再入院；电子健康记录；集成学习；临床文本；风险预测；模型可解释性</p>
+<h1 id="h16">第一章 绪论</h1>
+<h2 id="h18">1.1 研究背景与研究意义</h2>
+<h3 id="h20">1.1.1 研究背景</h3>
+<p>再入院通常指患者在出院后再次接受住院治疗，出院后 30 天内再次住院是既有研究中常用的结局指标之一，但其定义会因数据来源和研究目的不同而有所差异[2]。再入院风险与患者原有疾病、急性病情、既往医疗利用和出院后的照护衔接等多种因素相关。对 30 天再入院风险进行预测，临床意义主要体现在三个方面：一是在患者出院前识别高风险人群，为出院后随访、用药管理、社区衔接安排提供依据；二是辅助医疗机构分析再入院的可干预因素，为质量改进提供线索；三是在有限卫生资源条件下，将随访和服务资源向高风险患者倾斜，提高资源配置效率。需要强调的是，再入院并不必然意味着医疗质量存在问题，模型预测结果也不能直接解释为“可避免再入院”的概率。</p>
+<p>再入院风险预测研究长期受到临床医学与卫生管理领域关注。早期研究多采用临床经验、风险评分和传统统计模型，其优点是结构清晰、解释性强，但建模过程通常需要对变量关系作出较强假设。随着电子健康记录数据规模扩大，临床数据呈现出变量数量多、类型复杂、非线性与交互关系普遍等特点，传统线性模型可能难以充分利用其中的复杂模式[2-4]。机器学习能够刻画部分非线性关系和变量交互，因此被逐步引入再入院风险预测。但复杂模型并不必然优于传统统计模型，其表现取决于队列构建、特征可用性、类别比例和验证方式。集成学习可以组合不同模型的预测信息，但是否带来稳定增益仍需在同一数据划分和评价体系下检验。</p>
+<p>公开的去标识化电子健康记录为临床预测方法研究提供了可复现的数据基础。MIMIC-IV 是基于美国 Beth Israel Deaconess Medical Center 临床记录构建的数据库，包含患者人口学信息、住院记录、诊断、检验、生命体征、用药及部分重症监护数据[1]。本研究实际使用的版本为 MIMIC-IV v3.1（2024 年发布，hosp 模块 17 张表、icu 模块 10 张表）。与之关联的 MIMIC-IV-Note v2.2 提供去标识化的自由文本临床记录，包括出院小结和放射学报告，可通过 hadm_id 与结构化数据关联[16]。使用这些数据需遵守 PhysioNet 的访问要求和数据使用协议。</p>
+<p>电子健康记录中同时存在结构化数据与自由文本信息。结构化数据表达“患者有哪些疾病”“某项检验结果是多少”，而临床文本以自然语言形式记录了医生对本次住院经过、主要诊断、治疗过程和出院状态的综合判断。与单纯依赖结构化字段相比，临床文本可能包含尚未被结构化编码覆盖的信息，例如患者依从性、社会支持状况、出院后照护安排和医生的风险判断。因此，有必要通过系统比较研究临床文本能否为结构化数据模型提供增量预测价值。这也是本研究的出发点：不预设“文本融合必然更好”，而是在明确的队列、丰变的预测时点和统一的评价框架下，对文本的增量作用进行实证比较。</p>
+<h3 id="h30">1.1.2 研究意义</h3>
+<p>从研究设计层面看，已有的再入院预测研究在队列定义、特征选择、验证方式和评价指标上差异很大，模型之间的性能比较往往难以直接成立[2,20]。本文把“在同一队列、同一数据划分、同一评价口径下比较传统基线、树模型与集成模型”作为基本研究框架，重点回答哪些方法在统一条件下更稳定、更可靠，而不是简单地声称集成学习一定优于单模型。</p>
+<p>从方法层面看，现有研究已将临床文本与结构化数据结合用于再入院预测[17-19]，因此本文不把“使用临床文本”作为创新本身，而是聚焦两个更具体的问题：一是文本在结构化基线之上究竟提供了多少增量信息；二是这种增量是否稳定，是否受样本选择、文本时间边界和统计不确定性影响。该定位属于规范的实证比较与增量价值评估，有利于避免把常见算法组合表述为新的通用算法。</p>
+<p>从应用层面看，本研究的结果可用于评估基于 MIMIC-IV 构建再入院风险分层模型的可行性与边界，为出院管理、随访安排和资源倾斜提供数据与模型层面的参考。研究属于回顾性数据库研究，结论外推性受单中心数据来源限制，不涉及临床决策支持系统的部署。</p>
+<h2 id="h38">1.2 国内外研究现状</h2>
+<h3 id="h40">1.2.1 国外研究现状</h3>
+<h4 id="h42">（1）传统再入院风险预测研究</h4>
+<p>再入院预测研究起步较早，早期工作以系统综述和模型性能评估为主。Kansagara 等对再入院风险预测模型进行了系统综述，纳入 26 个独特模型，发现基于回顾性行政数据的模型区分能力普遍较差（c 统计量 0.55~0.65），仅少数可在出院时使用的模型表现相对较好（c 统计量 0.68~0.83），指出多数模型的预测性能有限[2]。Mahmoudi 等对 41 项基于电子病历的再入院预测研究进行了系统回顾，回归模型平均 c 统计量约 0.71，机器学习模型约 0.74，虽优于基于行政数据的模型但提升幅度有限，两类方法的差异多数无统计学意义；研究同时指出，现有模型在校准报告、诊断性评价和临床效用分析方面仍有明显不足[20]。这些研究提示，再入院预测不是单纯的算法竞赛，结局定义、研究人群和验证设计同等重要。</p>
+<h4 id="h46">（2）机器学习再入院风险预测研究</h4>
+<p>随着 EHR 数据积累，随机森林、梯度提升树等机器学习方法被引入再入院预测。Jamei 等使用人工神经网络预测全因 30 天再入院风险，在较大样本上取得了优于传统统计方法的区分能力[3]。Rajkomar 等提出可扩展的深度学习框架，在多项临床预测任务中展示了自动特征学习的潜力[4]。在树模型方面，Random Forest 通过自助采样和随机特征子集降低单棵决策树的方差影响，适合处理高维非线性特征[5]；XGBoost 与 LightGBM 属于梯度提升决策树方法，通过逐步学习残差改善整体预测能力，在结构化数据任务中表现出较强性能[6,7]。不过，这类研究在不同人群、特征体系和验证方式下开展，结果不完全一致，不能据此认为复杂模型在所有队列中都优于传统统计模型。</p>
+<h4 id="h50">（3）临床文本与自然语言处理研究</h4>
+<p>临床自由文本具有信息丰富、表达灵活、包含医生综合判断等特点，同时也存在维度高、缩写多、表达非标准化等问题。自然语言处理技术被逐步应用于临床文本分析：TF-IDF 根据词频与逆文档频率构建文本向量，是传统文本表示中的经典方法[9]；Word2Vec 将词语映射为低维连续向量，能够在一定程度上表达词语之间的语义关系[10]；BERT 类预训练语言模型通过上下文建模获得更丰富的文本表示[11]，其中面向临床文本的 ClinicalBERT 进一步针对临床语料进行预训练或适配[12]。对于出院后风险预测任务，出院小结与患者本次住院过程及出院状态高度相关，被认为是信息量较大的临床文本来源[16]。但不同研究在文本来源、表示方法、融合方式与评价指标上差异较大，单一文本表示方法之间的比较结论难以直接推广。</p>
+<h4 id="h54">（4）结构化数据与临床文本融合研究</h4>
+<p>近年来，将结构化 EHR 与临床文本联合用于风险预测的研究不断增加。Pandey 等将出院小结切分为 200 词片段，使用 ClinicalT5 提取文本表征并与结构化电子健康记录融合，用于 30 天再入院预测，说明“结构化数据与临床文本融合”本身已不是空白方向[17]。He 等基于 MIMIC-IV 采用患者级划分，比较结构化电子健康记录与出院小结对急诊相关非计划再入院的预测表现，发现叙事性文本具有增量价值，但研究队列与本文拟采用的总体住院队列不完全相同[18]。Datta 等于 2026 年发表的 KAMELEON 研究在 MIMIC-III 上结合临床文本、外部医学知识和结构化机器学习模型开展风险预测，进一步说明多模态临床预测仍在发展[19]。此外，有研究利用多中心电子健康记录开发再入院模型并以 MIMIC-IV 进行外部验证，同时按出院后 7、14、21、30 天进行风险时间分层分析，发现累计风险模型与时间点特异性模型的临床效用存在差异，提示基于出院时信息的模型尚不足以可靠指导特定随访时间窗的患者分配[21]。这些工作共同表明，不能把“使用临床文本”“使用 ClinicalBERT”或“采用 Stacking”本身作为充分的创新依据，更稳妥的切入点是评估文本在结构化基线之上的增量价值。</p>
+<h3 id="h58">1.2.2 国内研究现状</h3>
+<p>国内再入院风险预测研究起步相对较晚，但近年来在特定疾病建模与异构数据融合两个方向上积累了初步成果。</p>
+<p>基于区域卫生信息平台的早期探索方面，李金林等基于我国某区域卫生信息平台的医疗数据，利用神经网络、随机森林等机器学习方法构建非计划再入院风险预测候选模型，探索同时预测再入院时间与发生可能性的建模路径[22]。该类研究较早地把国内再入院预测从单病种、单因素分析推进到多变量风险建模，但也受限于区域平台的数据覆盖范围和患者随访信息完整性。</p>
+<p>疾病特异性建模是国内近年较为集中的方向。陈雅婕等基于 MIMIC-IV 数据库构建并验证了心力衰竭患者出院后 30 天再入院预测模型，通过 Logistic 回归建立列线图，用以量化患者个体风险[23]。这类研究体现了国内研究对特定疾病人群风险识别与模型验证的关注，但数据来源多为单一中心，样本量相对有限，模型的外部可推广性仍有待检验。</p>
+<p>异构临床数据融合是国内近两年新出现的探索方向。俞凯等针对术后非计划再入院预测提出异构数据融合方法，将出院小结文本与住院结构化数据联合建模，采用 RoBERTa 提取文本特征、CNN 学习结构化特征，在单一公立医院数据上取得了高于常见基线的召回率与 AUROC[24]。该研究是国内将临床文本与结构化数据联合用于再入院预测的代表性工作之一，其局限在于数据来源单一，且未在统一队列下系统比较融合模型相对纯结构化模型的增量价值。</p>
+<p>总体来看，国内再入院预测研究已覆盖传统机器学习、疾病特异性建模和异构数据融合等方向，研究重心逐步从单一结构化数据转向临床文本与结构化数据的联合利用。但是，多数研究仍基于单中心或区域数据，结局定义与验证方式不统一，模型性能难以直接横向比较，也较少对预测概率进行校准评估。</p>
+<h3 id="h70">1.2.3 研究述评</h3>
+<p>综合国内外研究现状，值得深入的问题主要有三个方面。</p>
+<p>第一，不同结构化预测模型的比较仍需要统一、严格的实验框架。既有研究的队列定义、特征选择、验证方式和评价指标差异较大，模型之间的性能难以直接横向比较。在固定研究队列、共享数据划分和统一评价口径下系统比较传统基线、树模型与 Stacking 集成，有助于回答哪种方法在特定任务上更可靠。</p>
+<p>第二，临床文本是否真正带来增量预测价值，需要在相同样本条件下验证。已有融合研究往往把结构化特征与文本特征同时放入模型，难以区分性能提升来自文本信息本身，还是来自样本选择或特征工程差异。本文在文本可用子队列内分别建立“仅结构化”和“结构化+文本”的模型，并在同一批测试样本上比较，从而识别文本的独立贡献。</p>
+<p>第三，现有研究不能只关注区分能力，还需要重视校准、时间泄漏和结果解释。模型校准决定预测概率是否可用于风险分层；患者级数据泄漏和临床文本时间边界直接威胁结论有效性。本研究在 AUROC 之外同步报告 AUPRC、Brier Score、校准曲线、置信区间与敏感性分析，并用 SHAP 辅助解释预测，但不把预测归因当作因果结论。</p>
+<h2 id="h80">1.3 研究目标与研究问题</h2>
+<h3 id="h82">1.3.1 总体研究目标</h3>
+<p>本研究的总目标是：基于完整 MIMIC-IV v3.1 与 MIMIC-IV-Note v2.2 数据，构建成年住院患者 30 天再入院风险预测研究流程，系统比较结构化数据模型、Stacking 集成模型及临床文本融合模型的预测表现，并从预测性能、可靠性和可解释性等方面综合评价研究结果，回答临床文本在结构化基线之上是否带来增量价值这一核心实证问题。</p>
+<h3 id="h86">1.3.2 研究问题</h3>
+<div class="twrap"><table class="tbl"><thead><tr><th>研究问题</th><th>核心内容</th><th>对应章节</th></tr></thead><tbody><tr><td>RQ1</td><td>结构化临床数据能够在多大程度上预测 30 天再入院风险？</td><td>第四章</td></tr><tr><td>RQ2</td><td>Stacking 集成学习能否相较单模型带来稳定的预测增益？</td><td>第四章</td></tr><tr><td>RQ3</td><td>在文本可用且时间边界合理的条件下，临床文本能否提供额外预测信息？</td><td>第五章</td></tr><tr><td>RQ4</td><td>不同文本表示方法在预测表现和增量价值方面是否存在差异？</td><td>第五章</td></tr></tbody></table></div>
+<p>RQ1：利用人口统计学、疾病诊断、检验、生命体征、住院过程及医疗资源利用等结构化信息，建立 Logistic Regression、Random Forest、XGBoost、LightGBM 四种模型，比较其 AUROC、AUPRC、Precision、Recall、F1 与校准能力。</p>
+<p>RQ2：在单模型比较基础上，采用四个基学习器与 Logistic Regression 元学习器构建 Stacking 模型，比较单模型与 Stacking 的性能差异，验证不同模型之间是否存在可被有效利用的互补信息。</p>
+<p>RQ3：在文本可用子队列中重新评估结构化基线，再比较加入不同文本表示后的模型表现。若无法确认出院小结在预设预测时点已经可用，则文本实验仅作为回顾性方法比较，不将其解释为可在出院前实施的风险预警。</p>
+<p>RQ4：在样本规模、训练/测试划分和评价指标可比的前提下，比较 TF-IDF、Word2Vec 与 ClinicalBERT 三种文本表示方法的表现差异。该问题作为扩展分析，具体纳入的方法将结合计算资源、文本匹配情况和有效样本量确定。</p>
+<h2 id="h103">1.4 研究内容</h2>
+<p>研究内容分三个阶段递进展开。</p>
+<p><strong>第一阶段：结构化数据建模（对应 RQ1、RQ2）。</strong> 以 MIMIC-IV 住院记录为分析单位，明确纳入排除标准、指数住院定义和 30 天再入院结局的操作性定义；构建人口学、入院与住院过程、疾病与共病、检验与生命体征、医疗资源利用五类结构化特征；建立 LR、RF、XGBoost、LightGBM 四种单模型，并在同一患者级数据划分与评价体系下比较；再以四个基模型的 OOF 概率构造元特征，用 Logistic Regression 作为元学习器构建 Stacking 模型。</p>
+<p><strong>第二阶段：临床文本融合（对应 RQ3、RQ4）。</strong> 从 MIMIC-IV-Note v2.2 提取与指数住院对应的出院小结，完成文本清洗和文本时间边界核验；分别生成 TF-IDF、Word2Vec、ClinicalBERT 三种文本表示，与结构化特征进行特征级融合。文本融合实验在“文本可用子队列”内进行，先重新建立结构化基线，再比较三种融合模型，避免样本选择造成假性增益。</p>
+<p><strong>第三阶段：模型可靠性与可解释性研究。</strong> 对最终候选模型比较 AUROC、AUPRC、Precision、Recall、F1、Brier Score 与校准曲线，开展 DeLong 检验、Bootstrap 置信区间和敏感性分析；使用 SHAP 进行全局特征贡献和典型患者个体解释，明确模型解释的边界，讨论研究局限与临床意义。</p>
+<h2 id="h113">1.5 论文结构安排</h2>
+<p>全文共七章。第一章为绪论，交代研究背景、国内外研究现状、研究目标与内容。第二章介绍再入院风险预测的相关概念、机器学习方法、临床文本表示、特征融合及评价解释方法。第三章说明数据来源、研究队列构建、结局定义、结构化特征体系和临床文本处理。第四章开展结构化数据的 30 天再入院风险预测实验。第五章开展临床文本融合与增量价值分析。第六章评价模型可靠性、可解释性并进行讨论。第七章总结研究结论与展望。</p>
+<h1 id="h119">第二章 理论基础与研究方法</h1>
+<h2 id="h121">2.1 30 天再入院风险预测相关概念</h2>
+<p>再入院风险预测指利用患者在指数住院期间可获得的信息，估计其出院后一定时间内再次住院的概率。30 天再入院结局是临床质量评价和患者风险管理中常用的时间窗口，其优势在于时间段明确、与出院后护理衔接的关联性强，但定义会因研究目的和数据条件而变化。临床风险预测模型的基本要素包括：研究对象与结局的口径、预测时点、可用的特征集合、模型形式、验证方式以及评价指标。</p>
+<p>在再入院预测中，需要区分几个容易混淆的概念。全因再入院指因任何原因再次住院，非计划再入院则强调再住院并非事先安排的治疗计划；二者在研究设计、政策含义和可避免性判断上并不等价。预测概率也不等同于因果风险，模型输出的高风险只表示在该模型和样本条件下的统计关联，不能直接解释为“该患者之所以再入院是因为上述特征”。本研究在方法与讨论部分坚持这一界限。</p>
+<h2 id="h127">2.2 机器学习预测方法</h2>
+<h3 id="h129">2.2.1 Logistic Regression</h3>
+<p>设患者特征向量为 <i class="im">{x}∈ℝ<sup>d</sup></i>，结局为 <i class="im">y∈{0,1}</i>，其中 <i class="im">y=1</i> 表示 30 天内发生再入院。Logistic Regression 假设再入院概率满足：</p>
+<div class="formula">P(y=1∣ {x})=σ({w}<sup>ᵀ</sup>{x}+b)=frac{1}{1+exp{-({w}<sup>ᵀ</sup>{x}+b)}},</div>
+<p>其中 <i class="im">{w}</i> 为特征权重，<i class="im">b</i> 为偏置。模型通过最大化对数似然或最小化交叉熵损失进行训练。Logistic Regression 结构简单、参数具有统计解释意义，本文将其作为再入院风险预测的传统统计基线，同时也作为 Stacking 的元学习器，便于解释最终预测。</p>
+<h3 id="h137">2.2.2 Random Forest</h3>
+<p>Random Forest 通过 Bootstrap 从训练集中有放回抽样生成多棵决策树，并在每棵树的节点分裂时从特征全集中随机选取部分特征进行最优分裂[5]。对分类任务，多棵树的预测结果通过投票或平均概率进行集成。Random Forest 对高维、非线性特征具有较强适应性，且不易受单棵决策树过拟合影响，其袋外样本（Out-of-Bag）预测还可用于模型评估。本文使用 Random Forest 作为树模型代表，检验结构化特征中非线性关系和变量交互的价值。</p>
+<h3 id="h141">2.2.3 XGBoost</h3>
+<p>XGBoost 是梯度提升决策树的代表性实现[6]。设第 <i class="im">t</i> 轮加入的回归树为 <i class="im">f<sub>t</sub></i>，模型在 <i class="im">{x}<sub>i</sub></i> 上的预测为 <i class="im">ŷ<sub>i</sub>=Σ<sub>t</sub>f<sub>t</sub>({x}<sub>i</sub>)</i>，其训练目标为：</p>
+<div class="formula">{L}<sup>(t)</sup>=Σ<sub>i=1</sub><sup>N</sup>l≤ft(y<sub>i</sub>,ŷ<sub>i</sub><sup>(t-1)</sup>+f<sub>t</sub>({x}<sub>i</sub>))+Ω(f<sub>t</sub>),</div>
+<p>其中 <i class="im">l(·)</i> 为损失函数，正则项为：</p>
+<div class="formula">Ω(f)=γ T+(1)/(2)λΣ<sub>j=1</sub><sup>T</sup>w<sub>j</sub><sup>2</sup>,</div>
+<p><i class="im">T</i> 为叶子数，<i class="im">w<sub>j</sub></i> 为叶子权重，<i class="im">γ</i> 与 <i class="im">λ</i> 为正则系数。XGBoost 采用二阶泰勒展开近似目标函数，并支持列采样、缺失值自动学习与早停策略。本文使用 XGBoost 作为梯度提升方法的主要代表，验证结构化数据上更强特征表达能力是否带来稳定的性能优势。</p>
+<h3 id="h153">2.2.4 LightGBM</h3>
+<p>LightGBM 同样属于梯度提升决策树方法，通过直方图算法、单边梯度采样（GOSS）与互斥特征绑定（EFB）降低训练开销[7]。与按层生长的决策树不同，LightGBM 采用叶子优先（Leaf-wise）生长策略，在同等叶子数量下通常能获得更低损失，但需要配合最大深度等参数控制过拟合。本文在结构化数据模型中使用 LightGBM 作为性能较强的树模型代表，与 XGBoost 形成对照，考察不同提升策略对性能和效率的影响。</p>
+<h3 id="h157">2.2.5 Stacking 集成学习</h3>
+<p>Stacking 通过元学习器组合多个基学习器的预测结果[8]。为避免数据泄漏，本文采用 Out-of-Fold（OOF）预测构造元学习器训练输入：将训练集划分为 <i class="im">K</i> 折，对每个基模型 <i class="im">m</i>，在除去第 <i class="im">k</i> 折的剩余数据上训练，并对第 <i class="im">k</i> 折样本进行预测；将该折上基模型概率预测 <i class="im">p<sub>i</sub><sup>(m)</sup></i> 拼接为元特征向量 <i class="im">{p}<sub>i</sub>=[p<sub>i</sub><sup>(1)</sup>,…,p<sub>i</sub><sup>(M)</sup>]</i>，再以 Logistic Regression 作为元学习器 <i class="im">g</i> 学习：</p>
+<div class="formula">g: {p}<sub>i</sub> ↦ ŷ<sub>i</sub>.</div>
+<p>对测试样本，各基模型使用完整训练集重训后给出预测，再由元学习器输出最终再入院风险概率。Stacking 是研究中需要验证的模型策略，而不是预先假设一定优于单模型的方法。本文将其限定为“四个基模型 + 线性元学习器”的单层集成，便于控制复杂度并解释集成的来源。</p>
+<h2 id="h165">2.3 临床文本表示方法</h2>
+<h3 id="h167">2.3.1 TF-IDF</h3>
+<p>TF-IDF 结合词项频率与逆文档频率描述词语对文档的重要程度[9]。对词项 <i class="im">t</i> 与文档 <i class="im">d</i>：</p>
+<div class="formula">{tfidf}(t,d)={tf}(t,d)· {idf}(t),qquad {idf}(t)=lnfrac{N}{1+{df}(t)}+1,</div>
+<p>其中 <i class="im">N</i> 为语料文档总数，<i class="im">{df}(t)</i> 为包含词项 <i class="im">t</i> 的文档数。TF-IDF 简单、可解释、计算成本低，本文将其作为传统文本表示基线，回答“最简单的词频信息能否带来增量”。</p>
+<h3 id="h175">2.3.2 Word2Vec</h3>
+<p>Word2Vec 将词语映射为低维连续向量，Skip-gram 模型通过中心词预测上下文词来学习词向量[10]：</p>
+<div class="formula">(1)/(T)Σ<sub>t=1</sub><sup>T</sup>Σ<sub>-c≤ j≤ c, j≠q 0</sub>log P(w<sub>t+j</sub>∣ w<sub>t</sub>),</div>
+<p>其中 <i class="im">c</i> 为上下文窗口大小。文档向量通过文本中词语向量的平均池化获得。Word2Vec 能够在一定程度上表达词语语义关系，但难以处理上下文一词多义问题。本文将其作为分布式语义表示的代表，考察词语语义信息是否比词频表示更有价值。</p>
+<h3 id="h183">2.3.3 ClinicalBERT</h3>
+<p>ClinicalBERT 通常指面向临床文本继续预训练或适配的 BERT 类模型，具体版本和预训练语料并不唯一[11,12]。本研究将在实验中记录所用模型的名称、版本和来源，避免将不同 ClinicalBERT 变体视为完全相同的方法。设出院小结被切分为 <i class="im">m</i> 个文本块，第 <i class="im">k</i> 个文本块经 ClinicalBERT 编码后得到序列向量 <i class="im">{{h}<sub>1</sub><sup>(k)</sup>,…,{h}<sub>n<sub>k</sub></sub><sup>(k)</sup>}</i>，文档级向量通过对文本块向量取平均得到：</p>
+<div class="formula">{v}_{text{doc}}=(1)/(m)Σ<sub>k=1</sub><sup>m</sup>(1)/(n<sub>k</sub>)Σ<sub>i=1</sub><sup>n<sub>k</sub></sup>{h}<sub>i</sub><sup>(k)</sup>.</div>
+<p>该表示能够利用上下文语义信息，但受输入长度限制与计算资源影响，直接编码完整长文本需要分块处理。</p>
+<h2 id="h191">2.4 特征融合方法</h2>
+<p>本文采用特征级融合（Feature-level Fusion）。设结构化特征向量为 <i class="im">{x}<sub>s</sub>∈ℝ<sup>d<sub>s</sub></sup></i>，文本特征向量为 <i class="im">{v}<sub>t</sub>∈ℝ<sup>d<sub>t</sub></sup></i>，融合特征为：</p>
+<div class="formula">{z}=[{x}<sub>s</sub>; {v}<sub>t</sub>]∈ℝ<sup>d<sub>s</sub>+d<sub>t</sub></sup>.</div>
+<p>融合向量经标准化后输入统一学习器。特征级融合的优点是结构简单、便于在统一实验框架下比较不同文本表示方法的增量效果；其代价是需要处理融合后维度增加与不同模态特征尺度不一致的问题。</p>
+<p>对高维文本特征，本文先在训练集内部进行维度压缩或稀疏截断（如 TF-IDF 特征经截断奇异值分解降至 100~300 维），再与结构化特征拼接。所有压缩与标准化统计量均仅在训练折内部估计，避免特征处理造成的数据泄漏。融合模型仍采用 Stacking 框架，以保持与结构化基线模型的一致性。</p>
+<h2 id="h201">2.5 模型评价与解释方法</h2>
+<p>本文以 AUROC 作为整体区分能力的主要指标，以 AUPRC 作为类别不平衡条件下的重要指标，并报告 Precision、Recall、F1、Brier Score 与校准曲线。</p>
+<p>混淆矩阵相关指标定义为：</p>
+<div class="formula">text{Precision}=frac{text{TP}}{text{TP}+text{FP}},qquad text{Recall}=frac{text{TP}}{text{TP}+text{FN}},qquad F<sub>1</sub>=frac{2· text{Precision}·text{Recall}}{text{Precision}+text{Recall}}.</div>
+<p>AUROC 的等效 Mann-Whitney 形式为：</p>
+<div class="formula">{AUROC}=frac{1}{n<sub>+</sub>n<sub>-</sub>}Σ<sub>i∈ P</sub>Σ<sub>j∈ N</sub>𝟙(s<sub>i</sub>&gt;s<sub>j</sub>),</div>
+<p>其中 <i class="im">s<sub>i</sub></i> 为模型输出概率，<i class="im">P</i> 与 <i class="im">N</i> 分别为正负类样本集合。AUPRC 通过精度-召回曲线下面积计算：</p>
+<div class="formula">{AUPRC}=Σ<sub>k</sub>≤ft({Recall}<sub>k</sub>-{Recall}<sub>k-1</sub>){Precision}<sub>k</sub>.</div>
+<p>Brier Score 衡量概率预测的校准程度：</p>
+<div class="formula">{BS}=(1)/(N)Σ<sub>i=1</sub><sup>N</sup>(p<sub>i</sub>-y<sub>i</sub>)<sup>2</sup>,</div>
+<p>其中 <i class="im">p<sub>i</sub></i> 为模型预测概率。校准曲线将预测概率分箱后比较箱内平均预测概率与观察到的再入院频率。模型比较时，AUROC 差异采用 DeLong 检验[14]，AUPRC 差异采用 Bootstrap 置信区间，避免直接套用不适用于 PR 空间的检验方法。</p>
+<p>SHAP 基于合作博弈论中的 Shapley 值，将模型对单个样本的预测贡献分解到各特征[15]。设 <i class="im">F</i> 为全部特征集合，特征 <i class="im">j</i> 的 Shapley 值为：</p>
+<div class="formula">φ<sub>j</sub>=Σ_{S⊆ F∖{j}}(|S|!(|F|-|S|-1)!)/(|F|!)≤ft[f<sub>S</sub>({x}_{Scup{j}})-f<sub>S</sub>({x}<sub>S</sub>)],</div>
+<p>模型预测可写成加性解释形式：</p>
+<div class="formula">g({z}')=φ<sub>0</sub>+Σ<sub>j=1</sub><sup>M</sup>φ<sub>j</sub> z<sub>j</sub>',</div>
+<p>其中 <i class="im">φ<sub>0</sub></i> 为基线预测。全局解释通过所有样本的 <i class="im">|φ<sub>j</sub>|</i> 平均值衡量特征重要性，个体解释则分析单个患者的正负贡献特征。SHAP 解释属于模型预测层面的归因，不表示因果关系。</p>
+<h2 id="h233">2.6 类别不平衡处理</h2>
+<p>再入院结局通常存在类别不平衡，直接训练可能导致模型偏向多数类。</p>
+<p>SMOTE 通过在少数类样本的特征空间中进行插值合成新样本[13]。本文仅在训练折内应用 SMOTE，验证集与测试集保持原始分布。除 SMOTE 外，本文还采用类别权重、梯度提升模型的 scale_pos_weight 与随机欠采样作为对照方案，并根据验证集 AUPRC 选择是否启用重采样。所有采样操作均在交叉验证的训练折内完成，且不改变测试集分布。SMOTE 并非默认必选方法，尤其在混合型临床特征中需评估合成样本是否合理，因此作为敏感性分析纳入实验方案。</p>
+<h2 id="h239">2.7 复杂度与关键设计考量</h2>
+<p>以 <i class="im">N</i> 为样本数、<i class="im">d</i> 为特征数、<i class="im">T</i> 为树数量、<i class="im">D</i> 为最大深度、<i class="im">K</i> 为交叉验证折数，各方法的主要计算量级为：Logistic Regression 训练与特征维度近似线性相关；Random Forest 总训练代价随 <i class="im">T</i>、<i class="im">N</i>、<i class="im">log N</i> 与单树分裂代价线性增长；XGBoost 在 <i class="im">T</i> 轮提升中每轮代价与 <i class="im">N</i>、<i class="im">d</i> 及分裂搜索相关；LightGBM 通过直方图降低分裂搜索代价，训练效率通常高于逐样本分裂的 GBDT。Stacking 将基模型训练代价近似放大 <i class="im">K</i> 倍，但该代价发生在训练阶段，推理阶段仅为各基模型前向预测与一次元学习器预测。ClinicalBERT 编码代价随出院小结分块数量线性增长，文档级平均池化不引入额外训练参数。</p>
+<p>关键设计考量包括：仅使用指数住院结束前可获得的信息以控制时间泄漏；特征统计量、文本压缩与标准化均限定在训练折内部估计；固定随机种子并将数据划分、超参数与运行环境写入相应结果文件，保证实验可复现；模型比较不预设某方法一定最优，最终结论由完整数据实验结果确定。</p>
+<h1 id="h247">第三章 数据来源与研究设计</h1>
+<h2 id="h249">3.1 数据来源</h2>
+<h3 id="h251">3.1.1 数据库概况</h3>
+<p>MIMIC-IV 是基于美国 Beth Israel Deaconess Medical Center 临床记录构建的去标识化电子健康记录数据库，包含住院、急诊及重症监护相关数据，适用于多种临床预测研究[1]。它并非覆盖所有医疗机构或所有住院人群的全国性数据库，因此研究结论应限定在该数据库所能观测到的患者和住院记录范围内。正式研究需明确实际使用的版本，遵守 PhysioNet 的访问要求、身份认证和数据使用协议。</p>
+<h3 id="h255">3.1.2 数据库结构</h3>
+<p>MIMIC-IV v3.1 数据按模块组织，主要包括 Core 模块与 ICU 模块：Core 模块包含患者（patients）、住院（admissions）、转科（transfers）、诊断（diagnoses_icd）、手术操作（procedures_icd）、实验室检验（labevents）、微生物（microbiologyevents）、用药（pharmacy/prescriptions）以及 DRG 编码（drgcodes）等表；ICU 模块包含重症监护相关的 Chartevents、Inputevents、Outputevents 等高频时序表。MIMIC-IV-Note v2.2 为独立发布的去标识化临床文本资源，note 模块共 4 张表（discharge、discharge_detail、radiology、radiology_detail）。数据结构的具体表清单与字段定义以 MIMIC-IV 官方文档为准[1,16]。</p>
+<h3 id="h259">3.1.3 数据关联与已核验结果</h3>
+<p>MIMIC-IV-Note v2.2 中出院小结记录可通过 subject_id 和 hadm_id 与 MIMIC-IV v3.1 的患者及住院记录关联[16]。已完成的核验结果如下：</p>
+<ul><li>admissions 表（MIMIC-IV v3.1）共 546,028 条住院记录、223,452 名患者，hadm_id 唯一无重复，admittime 与 dischtime 均无缺失；</li><li>院内死亡（hospital_expire_flag=1）记录 11,801 条；入院类型以急诊（EW EMER. 177,459 条）、观察入院（EU OBSERVATION 119,456 条）为主；</li><li>discharge 文件（MIMIC-IV-Note v2.2）共 331,793 条记录，全部为 DS（Discharge Summary）类型，涉及 145,914 名患者，每个 hadm_id 唯一对应一份出院小结，无重复；</li><li>331,732 条（99.98%）discharge 可匹配到 admissions 表，匹配覆盖率为 60.75%，另有 61 条无法匹配，将在队列构建时说明处理方式；</li><li>时间戳经 MIMIC-IV 标准日期偏移处理（显示范围 2105-2214 年），相对时间差不受影响，报告年份需结合 anchor_year 转换；</li><li>文本时间核验：99.84% 的出院小结 charttime 不晚于出院时间，但约 73.9% 的 storetime 晚于出院时间，文本可用性口径需在正式分析中明确。</li></ul>
+<p>以上是已完成核验的事实。正式队列构建、结局标注、特征工程和模型实验尚未开展，属于下一步计划内容。</p>
+<h2 id="h272">3.2 研究队列构建</h2>
+<h3 id="h274">3.2.1 纳入与排除标准</h3>
+<p>研究队列按下列标准纳入：年龄大于等于 18 岁；在 MIMIC-IV 中存在有效住院记录，且能够确定入院时间与出院时间；存在可用于建立预测模型的临床信息；对于文本融合实验，该次住院存在对应的 Discharge Summary。</p>
+<p>排除标准包括：年龄小于 18 岁；缺失关键入院或出院时间信息；院内死亡患者；无法判断出院后 30 天内是否发生再入院的记录；对于特定文本融合实验，缺失对应 Discharge Summary 的住院记录。</p>
+<p>其中第 5 条不用于主队列，而用于构建“文本可用子队列”：主队列支撑结构化数据模型，文本可用子队列支撑“结构化数据+临床文本”模型。该设计可以避免将研究样本限制为“有文本记录的人”，从而更严谨地评估文本的增量价值。</p>
+<h3 id="h282">3.2.2 指数住院定义与预测时点</h3>
+<p>指数住院是用于计算预测特征并确定随访起点的目标住院记录。为降低同一患者多次住院造成的样本相关性，主分析拟优先采用每位患者首次符合纳入标准的住院作为指数住院；既往住院史仍可作为预测变量。若完整数据分布和研究目的支持保留同一患者的多次住院，可将全部符合条件的住院作为补充分析，并按 subject_id 分组划分训练集、验证集和测试集，确保同一患者不会同时进入不同数据集。</p>
+<p>预测时点暂定为指数住院出院时。所有结构化特征必须在该时点前或时点上可获得；出院后才形成的诊断、检查、治疗和后续住院信息不得用于预测。对出院小结则需额外核查 charttime、storetime 与出院时间：若文本在预测时点之后才完成或签署，不能将其直接视为出院时可用的预测信息。</p>
+<h3 id="h288">3.2.3 研究对象筛选流程</h3>
+<p>正式实验时将在完整数据上执行以下流程：读取 admissions 等表 → 按纳入排除标准筛选 → 确定指数住院 → 构建 30 天再入院结局标签 → 匹配出院小结 → 划分训练、调参、测试集。</p>
+<p>（正式实验完成后补充）各步骤的剩余住院记录数、患者数、排除原因分布和队列筛选流程图，需在完整 MIMIC-IV 数据上运行后补充。</p>
+<h2 id="h294">3.3 30 天再入院结局定义</h2>
+<p>本研究拟将主要结局定义为：患者在指数住院出院后的 30 天内，是否在 MIMIC-IV 所覆盖的医疗机构记录中再次发生住院。发生符合条件的再次住院记为 1，否则记为 0。该定义属于数据库可观测范围内的全因再住院，不等同于患者在其他医院发生的全部再入院，也不自动等同于“非计划再入院”。</p>
+<p>在正式分析前，需要明确转院、观察性就诊、同日连续住院、院内死亡和 30 天观察窗口的处理规则：同日连续住院应按预先定义的规则合并或排除；观察性就诊是否计为再住院需结合 admission type 判断；院内死亡患者不在出院后随访范围内，从主分析中排除；数据库观察期不足以覆盖出院后 30 天的记录，不应简单标记为未再入院，需依据可用字段确定排除、删失或敏感性分析方案。还需检查 MIMIC-IV 的字段是否足以可靠识别计划性再入院；若无法建立可靠的计划性判定规则，主分析应坚持使用全因再住院定义，并如实说明，不将结局表述为非计划再入院。</p>
+<p>（正式实验完成后补充）最终纳入与排除数量、结局标签分布及各项判定规则的执行统计，需在完整数据提取和核验后补充。</p>
+<h2 id="h302">3.4 结构化数据特征体系</h2>
+<p>结构化特征按临床意义分为五类，候选特征总数目标为 40 个以上，最终特征集合依据缺失比例、数据质量、分布特征、高相关性与模型需要筛选，不机械固定为某个数字。</p>
+<div class="twrap"><table class="tbl"><thead><tr><th>特征类别</th><th>主要候选内容</th></tr></thead><tbody><tr><td>人口学特征</td><td>年龄、性别、种族、入院年份</td></tr><tr><td>入院与住院特征</td><td>入院类型、入院来源、住院时长、是否入住 ICU、ICU 时长、既往住院次数、是否经急诊</td></tr><tr><td>疾病与共病特征</td><td>ICD 诊断编码聚合、Charlson 合并症指数相关指标、DRG 严重程度与死亡风险分组、主要诊断类别</td></tr><tr><td>检验与生命体征</td><td>血常规、肾功能、血糖、电解质、血压、心率、体温的均值、最值、末次值与测量次数</td></tr><tr><td>医疗资源利用</td><td>既往住院次数、既往急诊利用、住院期间可确认的治疗或检查信息</td></tr></tbody></table></div>
+<p>人口学特征中，年龄按指数住院入院时间与出生日期计算，性别与种族按 admissions/patients 表记录。疾病与共病特征中，诊断编码需按 ICD-9/ICD-10 与标准映射表统一处理。实验室与生命体征特征中，同一指标在指数住院期间通过均值、最小值、最大值、末次值与测量次数等统计量聚合，指标选取依据临床意义与缺失比例确定。医疗资源利用特征中，涉及住院结束后才完成编码或归档的字段，只有在确认其在预测时点可用后才纳入。</p>
+<p>（正式实验完成后补充）结构化特征表的最终列名、特征数量与缺失比例需在完整数据上运行后写入，并同步补充特征清单表。</p>
+<h2 id="h318">3.5 临床文本数据处理</h2>
+<h3 id="h320">3.5.1 出院小结提取</h3>
+<p>出院小结从 MIMIC-IV-Note v2.2 中按 hadm_id 提取，仅保留与指数住院对应的记录，文本融合实验在“文本可用子队列”上进行。经核验，discharge 文件共包含 331,793 条出院小结记录（全部为 DS 类型），其中 331,732 条（99.98%）可匹配到 admissions 表，覆盖 admissions 全部住院记录的 60.75%，每条住院记录对应唯一一份出院小结。</p>
+<h3 id="h324">3.5.2 文本清洗</h3>
+<p>文本清洗流程包括：统一小写；去除无意义字符与格式符；保留章节结构信息用于后续辅助解释；对脱敏占位符统一规范化；去除重复句子等。清洗仅作用于文本表示输入，不改变临床语义。对文本长度进行统计并处理长文本：ClinicalBERT 存在输入长度限制，本文将出院小结按句子边界切分为不超过模型上限的文本块，块之间保留适量重叠，再按 2.3.3 节公式进行文档级平均池化。</p>
+<h3 id="h328">3.5.3 文本时间边界核验</h3>
+<p>discharge 表提供两个时间字段：charttime（记录内容时间）和 storetime（记录归档时间）。经核验：charttime 全部非空，331,209 条（99.84%）早于或等于出院时间，说明小结内容记录时间基本都在住院期内；storetime 有 17 条缺失，其余 331,715 条中，86,347 条（26.03%）早于出院时间，262 条等于出院时间，245,106 条（73.90%）晚于出院时间。</p>
+<p>这意味着，如果以“出院时点小结已经归档”作为文本可用的判断标准，则只有约 26% 的记录满足条件；若放宽为“小结内容时间在出院前（charttime ≤ dischtime）”，覆盖率可达 99.84%。本研究将根据这一核验结果，在方法中明确区分两种文本可用口径，并在敏感性分析中比较其对结论的影响。</p>
+<h3 id="h334">3.5.4 文本可用子队列与匹配规则</h3>
+<p>文本匹配以 hadm_id 为主要关联键，并核查是否存在重复小结、补充小结和无法匹配的住院记录。主队列中没有可用文本的样本仍保留在结构化模型分析中；文本融合实验则在文本可用子队列内重新建立结构化基线，并在同一批患者及同一测试划分上比较融合模型。若文本完成时间晚于预设预测时点，该文本不用于模拟出院时可用的预测；必要时将相关分析单独界定为回顾性研究。</p>
+<h2 id="h338">3.6 数据集划分与数据泄漏控制</h2>
+<p>完整数据上按患者（subject_id）而非住院记录进行分层划分，避免同一患者的多条住院记录同时出现在训练集与测试集。划分比例暂定为训练集 70%、调参集 15%、测试集 15%，最终以样本量与结局发生率确定。</p>
+<p>在训练集内部采用 5 折分层交叉验证，用于超参数选择与 Stacking OOF 预测；为保证比较公平，所有模型共享同一套折划分文件。特征选择、缺失值统计、标准化、文本维度压缩等所有需要拟合数据的预处理步骤均放入交叉验证管道，仅在训练折内拟合，再应用于验证折与测试集；任何来自出院后的信息不进入特征。SMOTE 或采样仅在每折训练子集内执行，验证折不参与合成样本；元学习器输入由 OOF 预测生成，避免叠加采样与 OOF 导致的信息泄漏。</p>
+<h1 id="h346">第四章 结构化数据的 30 天再入院风险预测</h1>
+<p>本章回答 RQ1 与 RQ2：比较四种单模型在结构化临床数据上的再入院风险预测性能，并验证 Stacking 集成是否能够进一步改善预测表现。</p>
+<h2 id="h350">4.1 数据预处理与特征工程</h2>
+<p>数据预处理包括缺失值处理、异常值处理、变量编码和特征转换。</p>
+<p>缺失值处理：先统计各变量的缺失比例与缺失模式，再根据临床意义和数据质量确定是否保留。对保留变量，采用训练集内估计的中位数或众数填补，并视情况增加缺失指示变量。缺失阈值和填补方案在分析前确定，并通过敏感性分析检查其影响。</p>
+<p>异常值处理：结合变量定义、单位和临床合理范围检查异常值。对于极端数值，先区分真实病情异常与录入或单位错误，不宜仅凭统计分布自动删除。若采用截尾或缩尾处理，应在训练数据中确定规则并记录依据；检验和生命体征的单位需统一。</p>
+<p>变量编码与特征转换：二分类变量直接编码；多分类变量在训练折内统计频率后选择编码方式；诊断与手术编码按 ICD 层级聚合为粗粒度类别特征，具体聚合规则在特征工程定稿时确定。对逻辑回归等对特征尺度敏感的模型进行 z-score 标准化，均值与标准差只在训练折中估计；树模型通常不依赖标准化，是否处理按模型特性决定。验证集和测试集仅应用训练折估计的转换参数。</p>
+<p>类别不平衡处理：先报告原始队列中的结局比例，再优先比较类别权重、阈值调整等处理方式；SMOTE 作为敏感性分析。任何重采样仅在训练折内部进行，验证集和测试集保持原始类别分布。</p>
+<p>数据泄漏控制是关键约束：所有预处理统计量（缺失值统计、标准化、文本维度压缩、特征选择）均放入交叉验证管道，仅在训练折内拟合，再应用于验证折与测试集；任何来自出院后的信息不进入特征；模型比较采用同一套数据划分与随机种子。</p>
+<h2 id="h364">4.2 单模型构建</h2>
+<h3 id="h366">4.2.1 Logistic Regression</h3>
+<p>Logistic Regression 采用 2.2.1 节模型，输入为标准化后的结构化特征。超参数包括正则化类型与正则强度，拟通过调参集选择；特征较多时考虑 L1/L2 混合弹性网形式。模型输出概率直接作为再入院风险估计。</p>
+<h3 id="h370">4.2.2 Random Forest</h3>
+<p>Random Forest 超参数包括树数量、最大深度、最小叶子样本数与分裂所需最小样本数。为控制过拟合，交叉验证时观察训练误差与验证误差的差距；模型可输出特征重要性作为辅助参考，正式结论以 SHAP 为准。</p>
+<h3 id="h374">4.2.3 XGBoost</h3>
+<p>XGBoost 采用 2.2.3 节目标函数，配置学习率、树数量、最大深度、叶子最小样本权重、列采样与 L1/L2 正则。训练时使用早停策略，以验证集 AUROC 或 AUPRC 为准停止；类别不平衡时考虑 scale_pos_weight。</p>
+<h3 id="h378">4.2.4 LightGBM</h3>
+<p>LightGBM 采用 2.2.4 节直方图与 Leaf-wise 生长策略，配置学习率、叶子数、最大深度、最小数据量、特征与数据采样比例。与 XGBoost 相同，通过早停选择树数量，避免过拟合。</p>
+<p>（正式实验完成后补充）四种模型的最优超参数组合、早停轮数与训练时间将记录到结果文件，并在此处汇总为超参数表。</p>
+<h2 id="h384">4.3 Stacking 集成模型</h2>
+<p>Stacking 基学习器固定为 Logistic Regression、Random Forest、XGBoost、LightGBM 四个模型，各自在训练折内部完成超参数选择后生成 OOF 概率预测。元学习器采用 Logistic Regression，输入为四个基模型的 OOF 概率向量，输出为最终再入院风险概率；将元学习器限定为线性模型，有利于保持最终预测的可解释性，并将复杂度控制在一层集成。</p>
+<p>OOF 预测流程如下：</p>
+<ol><li>输入训练集 <i class="im">D = {({x}<sub>i</sub>, y<sub>i</sub>)}</i> 与 5 折划分 <i class="im">{D<sub>1</sub>,…,D<sub>5</sub>}</i>；</li><li>对每个基模型 <i class="im">m</i>，在每一折 <i class="im">k</i> 上，于 <i class="im">D∖ D<sub>k</sub></i> 训练模型，并对 <i class="im">D<sub>k</sub></i> 生成概率预测 <i class="im">p<sub>i</sub><sup>(m)</sup></i>；</li><li>拼接得到元特征矩阵 <i class="im">{P}=[p<sup>(1)</sup>,…,p<sup>(4)</sup>]</i>；</li><li>在 <i class="im">({P}, y)</i> 上训练元学习器 <i class="im">g</i>；</li><li>OOF 预测用于验证；测试集经基模型在完整训练集重训后由 <i class="im">g</i> 输出最终预测。</li></ol>
+<p>该流程保证元学习器输入从未被对应基模型“见过”，避免 Stacking 中的数据泄漏。完整数据上还需记录每折划分的受试者唯一性，防止同一患者跨折。</p>
+<h2 id="h398">4.4 模型实验结果与性能比较</h2>
+<p>本章实验方案见表 4-1。所有模型在完整 MIMIC-IV 数据上完成队列构建、结局标注和特征工程后运行；当前均处于“待正式实验完成后补充”状态，本稿不报告任何未经真实运行的指标数值。</p>
+<div class="twrap"><table class="tbl"><thead><tr><th>实验</th><th>数据</th><th>模型</th><th>目的</th><th>当前状态</th></tr></thead><tbody><tr><td>Model 1</td><td>结构化</td><td>Logistic Regression</td><td>传统统计基线</td><td>待正式实验完成后补充</td></tr><tr><td>Model 2</td><td>结构化</td><td>Random Forest</td><td>单模型比较</td><td>待正式实验完成后补充</td></tr><tr><td>Model 3</td><td>结构化</td><td>XGBoost</td><td>单模型比较</td><td>待正式实验完成后补充</td></tr><tr><td>Model 4</td><td>结构化</td><td>LightGBM</td><td>单模型比较</td><td>待正式实验完成后补充</td></tr><tr><td>Model 5</td><td>结构化</td><td>Stacking（4 基学习器 + LR 元学习器）</td><td>集成模型效果</td><td>待正式实验完成后补充</td></tr></tbody></table></div>
+<p>评价指标：AUROC、AUPRC、Precision、Recall、F1、Brier Score、校准曲线；AUROC 差异采用 DeLong 检验，AUPRC 差异采用 Bootstrap 置信区间。对比基线：Logistic Regression（Model 1）；Model 2~4 为树模型对照；Model 5 与各单模型互为对照。</p>
+<p>运行环境（占位，待实验脚本与环境锁定后由配置文件和运行日志补全）：</p>
+<div class="twrap"><table class="tbl"><thead><tr><th>项目</th><th>配置（占位）</th></tr></thead><tbody><tr><td>操作系统</td><td>待填写</td></tr><tr><td>Python 版本</td><td>待填写</td></tr><tr><td>计算资源</td><td>CPU/GPU 待填写</td></tr><tr><td>依赖库</td><td>scikit-learn / xgboost / lightgbm / imbalanced-learn / shap 等，版本待锁定</td></tr><tr><td>随机种子</td><td>待固定</td></tr></tbody></table></div>
+<h3 id="h422">4.4.1 AUROC 比较</h3>
+<div class="twrap"><table class="tbl"><thead><tr><th>模型</th><th>AUROC（95% CI）</th><th>DeLong 检验 vs LR</th></tr></thead><tbody><tr><td>Logistic Regression</td><td>待正式实验完成后补充</td><td>基线</td></tr><tr><td>Random Forest</td><td>待正式实验完成后补充</td><td>待正式实验完成后补充</td></tr><tr><td>XGBoost</td><td>待正式实验完成后补充</td><td>待正式实验完成后补充</td></tr><tr><td>LightGBM</td><td>待正式实验完成后补充</td><td>待正式实验完成后补充</td></tr><tr><td>Stacking</td><td>待正式实验完成后补充</td><td>待正式实验完成后补充</td></tr></tbody></table></div>
+<h3 id="h432">4.4.2 AUPRC 比较</h3>
+<p>AUPRC 比较关注类别不平衡下的区分能力。各模型 AUPRC 及其 Bootstrap 95% 置信区间待真实运行后填入，差异以置信区间是否包含零判断。</p>
+<h3 id="h436">4.4.3 Precision、Recall、F1 比较</h3>
+<p>Precision、Recall、F1 依赖分类阈值。分类阈值将在验证集上依据预先说明的原则确定，例如在临床使用情境下优先保证一定召回率，或根据预设的效用标准选择阈值；不应在测试集上反复调整阈值。由于阈值会影响 Precision、Recall 和 F1，论文需同时报告阈值选择方法与对应结果。</p>
+<h3 id="h440">4.4.4 校准能力比较</h3>
+<p>通过校准曲线与 Brier Score 比较各模型概率校准能力。不同模型即使 AUROC 接近，其校准表现也可能不同；最终模型选择将综合考虑区分能力、校准与稳定性。</p>
+<h2 id="h444">4.5 结构化模型结果分析</h2>
+<p>结构化数据阶段不以单一指标直接决定“最佳模型”。应结合 AUROC、AUPRC、校准表现、置信区间和验证集上的阈值表现进行综合比较，同时考虑模型复杂度与结果稳定性。若 Stacking 未显示出稳定且有实际意义的改善，应如实报告，并保留表现相当但更简单的单模型作为候选方案。</p>
+<p>（正式实验完成后补充）最佳模型及其依据（数值、区间、统计检验结果）待完整数据实验完成后补充。</p>
+<h1 id="h452">第五章 临床文本融合与增量价值分析</h1>
+<p>本章回答 RQ3 与 RQ4：在文本可用且时间边界满足要求的条件下，临床文本能否提供增量预测价值；不同文本表示方法在这一任务上的表现是否存在差异。本章全部真实结果依赖完整 MIMIC-IV-Note 的 Discharge Summary，当前均标注为“待正式实验完成后补充”。</p>
+<h2 id="h456">5.1 文本可用子队列构建</h2>
+<p>从主队列中筛选具有对应 Discharge Summary 的住院记录，并按 3.5.3 节核验的文本时间要求确定文本可用口径。主分析优先使用“charttime ≤ 出院时间”的宽松口径开展回顾性方法比较，同时以“storetime ≤ 出院时间”的严格口径进行敏感性分析。文本可用子队列建立后，在子队列内重新评估结构化基线，确保结构化基线与融合模型使用完全相同的样本和划分。</p>
+<h2 id="h460">5.2 文本表示与特征构建</h2>
+<h3 id="h462">5.2.1 TF-IDF</h3>
+<p>出院小结经清洗与分词后按 2.3.1 节公式计算 TF-IDF 向量。由于 TF-IDF 维度较高，拟在训练折内部使用截断奇异值分解将维度压缩至 100~300 维，再用于融合；具体维度由验证集决定。</p>
+<h3 id="h466">5.2.2 Word2Vec</h3>
+<p>预训练或语料内训练的 Word2Vec 将词语映射为低维向量，文档向量取词向量平均。为保证与 ClinicalBERT 可比较，词向量维度拟设为 300；是否在完整语料上重新训练，待数据就绪后按可复现性要求决定。</p>
+<h3 id="h470">5.2.3 ClinicalBERT</h3>
+<p>ClinicalBERT 采用 2.3.3 节分块编码与平均池化得到 768 维文档向量。临床文本模型参数固定或微调，将依据样本量与计算资源决定；推理过程记录 GPU 消耗与耗时，供运行环境说明使用。使用前记录所用模型的具体名称、版本和来源，避免将不同 ClinicalBERT 变体视为完全相同的方法。</p>
+<p>（正式实验完成后补充）三种文本表示的维度、文本长度分布、分块数量、编码耗时与内存占用，将由文本实验脚本生成并记录。</p>
+<h2 id="h476">5.3 结构化数据与文本特征融合</h2>
+<h3 id="h478">5.3.1 特征维度处理</h3>
+<p>结构化特征与文本特征尺度差异较大，融合前分别标准化；高维文本特征先压缩，避免融合后维度失衡。所有需要拟合的转换参数均只从训练折估计。</p>
+<h3 id="h482">5.3.2 Feature-level Fusion</h3>
+<p>按 2.4 节将结构化特征向量与文本特征向量拼接为 <i class="im">d<sub>s</sub>+d<sub>t</sub></i> 维融合向量，送入统一学习器。为保持与第四章一致，最终学习器使用 Stacking 框架。</p>
+<h3 id="h486">5.3.3 融合模型构建</h3>
+<p>融合模型的训练流程与第四章一致：共享数据划分、训练折内特征处理、OOF 预测构造元特征。不同文本表示方法只替换文本特征部分，其余建模条件保持不变，以保证比较公平。实验组见表 5-1。</p>
+<div class="twrap"><table class="tbl"><thead><tr><th>实验</th><th>数据</th><th>模型</th><th>目的</th><th>当前状态</th></tr></thead><tbody><tr><td>Model 6</td><td>结构化 + TF-IDF</td><td>Stacking</td><td>传统文本增量</td><td>待正式实验完成后补充（需 MIMIC-IV-Note）</td></tr><tr><td>Model 7</td><td>结构化 + Word2Vec</td><td>Stacking</td><td>分布式语义增量</td><td>待正式实验完成后补充（需 MIMIC-IV-Note）</td></tr><tr><td>Model 8</td><td>结构化 + ClinicalBERT</td><td>Stacking</td><td>上下文语义增量</td><td>待正式实验完成后补充（需 MIMIC-IV-Note）</td></tr></tbody></table></div>
+<p>同时保留 Model 5（Structured Only，第四章）作为统一对照，并在文本可用子队列上重新评估。</p>
+<h2 id="h498">5.4 文本增量价值分析</h2>
+<h3 id="h500">5.4.1 性能提升比较</h3>
+<p>对每个文本表示方法计算相对于结构化基线的性能变化：</p>
+<div class="formula">Δ {AUROC}={AUROC}_{text{Struct+Text}}-{AUROC}_{text{Struct}},</div>
+<div class="formula">Δ {AUPRC}={AUPRC}_{text{Struct+Text}}-{AUPRC}_{text{Struct}}.</div>
+<p>同时报告 Precision、Recall、F1 与 Brier Score 的变化，避免单一指标主导结论。</p>
+<h3 id="h510">5.4.2 AUROC 差异</h3>
+<p>三组文本模型分别与 Structured Only 进行 DeLong 检验[14]，报告 AUROC 差异、标准误与检验 p 值。</p>
+<h3 id="h514">5.4.3 AUPRC 差异</h3>
+<p>由于 AUPRC 与类别比例关系密切，不直接套用 DeLong 检验；采用 Bootstrap 重采样估计 AUPRC 差异的置信区间。</p>
+<h3 id="h518">5.4.4 统计显著性分析</h3>
+<p>统计检验结果待真实运行后填入表 5-2。多组比较需说明多重检验处理方式；若差异不显著，将如实报告“文本未提供显著增量”，避免夸大结论。</p>
+<div class="twrap"><table class="tbl"><thead><tr><th>比较</th><th>ΔAUROC（95% CI）</th><th>DeLong p</th><th>ΔAUPRC（95% CI，Bootstrap）</th></tr></thead><tbody><tr><td>Struct vs Struct+TF-IDF</td><td>待正式实验完成后补充</td><td>待正式实验完成后补充</td><td>待正式实验完成后补充</td></tr><tr><td>Struct vs Struct+Word2Vec</td><td>待正式实验完成后补充</td><td>待正式实验完成后补充</td><td>待正式实验完成后补充</td></tr><tr><td>Struct vs Struct+ClinicalBERT</td><td>待正式实验完成后补充</td><td>待正式实验完成后补充</td><td>待正式实验完成后补充</td></tr></tbody></table></div>
+<h3 id="h528">5.4.5 最终模型确定</h3>
+<p>最终模型将在“性能显著提升”与“解释成本可接受”之间权衡确定：若文本带来显著且稳定的 AUROC/AUPRC 提升，选择对应的文本融合模型作为最终模型；否则选择结构化模型，并明确说明文本未带来增量价值。</p>
+<p>（正式实验完成后补充）第五章全部数值、统计检验与最终模型选择理由待完整 MIMIC-IV-Note 数据上运行后补充。</p>
+<h1 id="h536">第六章 模型可靠性、可解释性与讨论</h1>
+<h2 id="h538">6.1 模型可靠性分析</h2>
+<p>模型可靠性分析包括四个方面：</p>
+<p>其一，校准能力。通过校准曲线与 Brier Score 评估预测概率与观测频率的匹配程度，避免只关注区分能力而忽视概率的临床可用性。</p>
+<p>其二，统计不确定性。为关键指标报告 Bootstrap 置信区间，AUROC 差异采用 DeLong 检验，模型结论不以单次指标高低为准。</p>
+<p>其三，敏感性分析。检查类别不平衡处理方式（类别权重、阈值调整、SMOTE）、缺失值填补策略和文本时间口径对结果的影响；若文本归档时间晚于出院时间，分别按严格口径与宽松口径重新计算，比较结论是否稳健。</p>
+<p>其四，泄漏控制检查。逐项确认特征时间边界（出院前可得）、患者级数据划分（同一患者不跨集）、文本与住院记录匹配的唯一性，以及 OOF 构造过程是否存在样本信息重复使用。</p>
+<h2 id="h550">6.2 SHAP 全局解释</h2>
+<p>本章对最终候选模型（第四章或第五章确定）进行解释。解释对象包括结构化特征对预测概率的全局贡献，以及典型患者的个体贡献。由于最终模型尚未确定，本章所有图与数值均为待补充状态。</p>
+<p>根据 SHAP 值计算全局特征重要性：</p>
+<div class="formula">text{Importance}<sub>j</sub>=(1)/(N)Σ<sub>i=1</sub><sup>N</sup>|φ<sub>i,j</sub>|,</div>
+<p>其中 <i class="im">φ<sub>i,j</sub></i> 为样本 <i class="im">i</i> 上特征 <i class="im">j</i> 的 SHAP 值。全局重要性排序待真实运行后补充。通过 SHAP Summary Plot 展示特征值与 SHAP 值的关系，识别高风险方向与保护方向的临床变量；使用 SHAP Dependence Plot 分析关键特征与预测贡献之间的非线性关系，可结合交互作用图观察与住院时长、年龄等变量的交互。解释仅适用于结构化特征，具体排序与方向由实验结果确定，不得预先指定。</p>
+<h2 id="h560">6.3 个体预测解释</h2>
+<p>从测试集中选取 3~5 个典型患者案例（如高风险再入院、低风险出院、模型误判案例），采用 Waterfall 或 Force Plot 展示其预测概率、基线值与正负贡献特征，并解释模型判断依据。案例编号与注释写入结果文件。</p>
+<p>临床上需要明确：SHAP 是模型预测层面的归因，不代表因果关系。对于 ClinicalBERT 输出为 768 维文档向量的情况，不把某一维度直接解释为具体临床关键词；文本部分采用高频词、医学实体统计、代表性子句摘录以及文本与结构化预测不一致案例的定性分析作为辅助解释。</p>
+<h2 id="h566">6.4 临床意义与研究讨论</h2>
+<p>结合实验结果（待补充）讨论：结构化数据能够提供哪些预测信息，哪些变量对再入院风险贡献较大；文本是否带来稳定增益，其增益是否依赖文本表示方式；TF-IDF、Word2Vec 与 ClinicalBERT 在当前数据上的表现差异及可能原因；模型的实际应用边界。模型预测概率可用于探索风险分层的可能性，但具体分层阈值需要结合临床需求、资源约束和决策后果确定。本研究属于回顾性数据库研究，即使模型在内部测试中表现良好，也不能直接推断其能够改善临床结局；实际应用仍需外部验证、前瞻性评估及与临床工作流程的适配研究。</p>
+<h2 id="h570">6.5 研究局限性</h2>
+<p>本研究的局限主要包括：</p>
+<ol><li>数据来源为 MIMIC-IV 单中心回顾性数据库，研究人群与真实全人群存在差异，结论外推性有限；</li><li>尚未开展外部数据验证与前瞻性研究，不具备临床决策支持系统的部署条件；</li><li>主分析使用全因再住院定义，计划性再入院识别能力有限，结局口径对结果的影响需要通过敏感性分析说明；</li><li>住院记录中约四成没有出院小结，文本可用子队列可能存在选择偏倚，需在子队列内重建基线并说明两组差异；</li><li>约 73.9% 的出院小结归档时间晚于出院时间，若按严格口径，文本样本量受限；若按宽松口径，文本融合分析定位为回顾性方法比较；</li><li>ClinicalBERT 全文编码与微调受计算资源限制，文本表示采用分块平均池化，可能损失部分长距离语义信息；</li><li>SHAP 解释只说明模型预测归因，不表示因果，不能直接作为干预依据。</li></ol>
+<h1 id="h584">第七章 研究结论与展望</h1>
+<h2 id="h586">7.1 主要研究结论</h2>
+<p>截至本稿修订时，完整数据上的队列构建和模型实验尚未完成，因此目前不能给出关于预测性能、集成模型增益或文本融合效果的实证结论。本章暂时总结研究方案与当前进度，正式结论需在全部预定实验完成后，根据真实结果重新撰写。</p>
+<p>暂不能下结论的内容包括：RQ1 中四种结构化模型及 Stacking 的性能排序；RQ2 中集成模型的增量效果是否稳定；RQ3 中临床文本是否提供显著增量价值；RQ4 中三种文本表示方法的优劣；SHAP 识别出的关键风险因素及其临床解释。</p>
+<h2 id="h592">7.2 研究贡献</h2>
+<p>本文的研究贡献主要体现在研究设计和实证比较层面：</p>
+<ol><li>文本增量价值的严格对照评估。在文本可用子队列内，对“仅结构化”和“结构化+三种文本表示”的模型使用同一批测试样本比较，区分文本本身的贡献与样本选择造成的影响；</li><li>统一框架下的公平模型比较。固定患者级数据划分、共享交叉验证折、统一指标与统计检验，系统比较 LR、RF、XGBoost、LightGBM 与 Stacking，把是否集成、是否融合文本作为需要实验回答的问题；</li><li>预测可靠性与可解释性的综合评价。在区分能力之外同步评估校准、置信区间和患者级防泄漏设计，明确临床文本的时间边界，用 SHAP 解释预测但不把预测归因当作因果结论。</li></ol>
+<p>以上贡献的最终成立均以完整数据实验结果为前提，定稿前不得夸大。</p>
+<h2 id="h602">7.3 研究展望</h2>
+<p>后续工作包括：完成全部预定实验并补充真实结果；尝试临床大语言模型与更复杂的跨模态融合结构；引入多中心数据与外部验证；发展基于住院过程的动态风险预测；在临床工作流中评估模型辅助风险分层与随访管理的可行性，为临床决策支持系统提供数据与模型层面的基础。</p>
+<h1 id="h608">参考文献</h1>
+<p>[1] JOHNSON A E W, BULGARELLI L, SHEN L, et al. MIMIC-IV, a freely accessible electronic health record dataset[J]. Scientific Data, 2023, 10: 1. DOI:10.1038/s41597-022-01899-x.</p>
+<p>[2] KANSAGARA D, ENGLANDER H, SALANITRO A, et al. Risk prediction models for hospital readmission: a systematic review[J]. JAMA, 2011, 306(15): 1688-1698. DOI:10.1001/jama.2011.1515.</p>
+<p>[3] JAMEI M, NISNEVICH A, WETCHLER E, et al. Predicting all-cause risk of 30-day hospital readmission using artificial neural networks[J]. PLOS ONE, 2017, 12(7): e0181173. DOI:10.1371/journal.pone.0181173.</p>
+<p>[4] RAJKOMAR A, OREN E, CHEN K, et al. Scalable and accurate deep learning with electronic health records[J]. npj Digital Medicine, 2018, 1: 18. DOI:10.1038/s41746-018-0029-1.</p>
+<p>[5] BREIMAN L. Random forests[J]. Machine Learning, 2001, 45(1): 5-32. DOI:10.1023/A:1010933404324.</p>
+<p>[6] CHEN T, GUESTRIN C. XGBoost: a scalable tree boosting system[C]//Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining. New York: ACM, 2016: 785-794. DOI:10.1145/2939672.2939785.</p>
+<p>[7] KE G, MENG Q, FINLEY T, et al. LightGBM: a highly efficient gradient boosting decision tree[C]//Advances in Neural Information Processing Systems 30. Long Beach: Curran Associates, 2017. DOI:10.48550/arXiv.1712.08763.</p>
+<p>[8] WOLPERT D H. Stacked generalization[J]. Neural Networks, 1992, 5(2): 241-259.</p>
+<p>[9] SALTON G, BUCKLEY C. Term-weighting approaches in automatic text retrieval[J]. Information Processing &amp; Management, 1988, 24(5): 513-523. DOI:10.1016/0306-4573(88)90021-0.</p>
+<p>[10] MIKOLOV T, CHEN K, CORRADO G, et al. Efficient estimation of word representations in vector space[EB/OL]. arXiv:1301.3781, 2013.</p>
+<p>[11] DEVLIN J, CHANG M W, LEE K, et al. BERT: pre-training of deep bidirectional transformers for language understanding[C]//Proceedings of the 2019 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies, Volume 1 (Long and Short Papers). Minneapolis: ACL, 2019: 4171-4186. DOI:10.18653/v1/N19-1423.</p>
+<p>[12] ALSENTZER E, MURPHY J R, BOAG W, et al. Publicly available clinical BERT embeddings[C]//Proceedings of the 2nd Clinical Natural Language Processing Workshop. Minneapolis: ACL, 2019: 72-78. DOI:10.18653/v1/W19-1909.</p>
+<p>[13] CHAWLA N V, BOWYER K W, HALL L O, et al. SMOTE: synthetic minority over-sampling technique[J]. Journal of Artificial Intelligence Research, 2002, 16: 321-357. DOI:10.1613/jair.953.</p>
+<p>[14] DELONG E R, DELONG D M, CLARKE-PEARSON D L. Comparing the areas under two or more correlated receiver operating characteristic curves: a nonparametric approach[J]. Biometrics, 1988, 44(3): 837-845. DOI:10.2307/2531595.</p>
+<p>[15] LUNDBERG S M, LEE S I. A unified approach to interpreting model predictions[C]//Advances in Neural Information Processing Systems 30. Long Beach: Curran Associates, 2017. DOI:10.48550/arXiv.1705.07874.</p>
+<p>[16] JOHNSON A, POLLARD T, HORNG S, et al. MIMIC-IV-Note: deidentified free-text clinical notes (version 2.2)[DS/OL]. PhysioNet, 2023. DOI:10.13026/1n74-ne17.</p>
+<p>[17] PANDEY S R, TILE J D, DAR OGHAZ M M. Predicting 30-day hospital readmissions using ClinicalT5 with structured and unstructured electronic health records[J]. PLOS ONE, 2025, 20(9): e0328848. DOI:10.1371/journal.pone.0328848.</p>
+<p>[18] HE Z, LI H, TIAN S, et al. A comparative study of structured and narrative EHR data for 30-day readmission risk assessment[J]. Electronics, 2025, 14(20): 4033. DOI:10.3390/electronics14204033.</p>
+<p>[19] DATTA R, CUI J, GUAN Z, et al. Knowledge-augmented large language model for multimodal electronic health record-based risk prediction: development and validation study[J]. JMIR AI, 2026, 5: e88356. DOI:10.2196/88356.</p>
+<p>[20] MAHMOUDI E, KAMDAR N, KIM N, et al. Use of electronic medical records in development and validation of risk prediction models of hospital readmission: systematic review[J]. BMJ, 2020, 369: m958. DOI:10.1136/bmj.m958.</p>
+<p>[21] （多中心再入院预测外部验证，作者与出处待核实，正式提交前补充）[21] 对应正文 1.2.1 第（4）部分所述研究，完整作者、题名、期刊、卷期页码与 DOI 待核实。</p>
+<p>[22] 李金林, 赵秀林, 张素威, 等. 非计划再入院风险预测研究[J]. 北京理工大学学报, 2020, 40(2): 198-205,212.</p>
+<p>[23] 陈雅婕, 张梦, 张亚丹, 等. 心力衰竭患者30天再入院预测模型构建及验证[J]. 武汉大学学报(医学版), 2026, 47(4): 504-510. DOI:10.14188/j.1671-8852.2024.1032.</p>
+<p>[24] （俞凯等. 基于异构数据的患者术后非计划再入院预测，期刊及卷期页码待核实）[24] 对应正文 1.2.2 所述研究，作者列表、期刊、卷期页码与 DOI 待核实，正式提交前请补充。</p>
+<h1 id="h660">附录 A 待补充实验与数据清单</h1>
+<div class="twrap"><table class="tbl"><thead><tr><th>章节</th><th>缺失内容</th><th>所需数据或实验</th><th>优先级</th><th>当前状态</th></tr></thead><tbody><tr><td>3.2</td><td>队列筛选统计与流程图</td><td>完整 MIMIC-IV admissions 等表</td><td>高</td><td>数据已就绪，待运行</td></tr><tr><td>3.3</td><td>结局标签与分布</td><td>完整住院记录 + 出院/再入院口径</td><td>高</td><td>数据已就绪，待运行</td></tr><tr><td>3.4</td><td>结构化特征表</td><td>完整 MIMIC-IV 各模块</td><td>高</td><td>数据已就绪，待运行</td></tr><tr><td>3.5</td><td>文本匹配与时间口径统计</td><td>MIMIC-IV-Note discharge</td><td>高</td><td>基础核验已完成，正式统计待运行</td></tr><tr><td>4.4</td><td>结构化模型性能指标与统计检验</td><td>完整数据 + 模型脚本</td><td>高</td><td>待运行</td></tr><tr><td>5.1~5.4</td><td>三种文本表示与增量价值</td><td>MIMIC-IV-Note + 文本融合脚本</td><td>中</td><td>待运行</td></tr><tr><td>6.2~6.3</td><td>SHAP 图与患者案例</td><td>最终模型 + SHAP 脚本</td><td>中</td><td>待模型实验完成后</td></tr><tr><td>7.1</td><td>正式研究结论</td><td>上述全部实验</td><td>高</td><td>待全部实验完成后</td></tr><tr><td>摘要/正文</td><td>真实指标替换占位符</td><td>上述实验完成后统一修订</td><td>中</td><td>待全部实验完成后</td></tr><tr><td>参考文献</td><td>核对全部文献的版本、页码和 DOI</td><td>出版社、期刊或官方数据集页面</td><td>高</td><td>[21][24] 待核实</td></tr></tbody></table></div>
+<h1 id="h675">附录 B 正式实验前的核对清单</h1>
+<ol><li>确认 MIMIC-IV v3.1 与 MIMIC-IV-Note v2.2 的访问资格、数据使用协议及实际使用版本。</li><li>在完整数据上执行队列筛选，记录纳入、排除的患者数和住院记录数及具体原因。</li><li>明确 30 天再入院标签规则，抽查部分记录，确认时间窗、转院及重复住院的处理符合预设标准。</li><li>完成特征工程后，检查变量缺失比例、异常值、时间戳和字段含义，排除预测时点之后才可获得的信息。</li><li>固定患者级数据划分，在训练折内部完成缺失值处理、标准化、特征筛选、重采样和模型调参。</li><li>在同一测试集上比较单模型和 Stacking，报告区分能力、校准表现及统计不确定性。</li><li>文本实验前核实文本与住院记录的匹配情况及文本完成时间，在文本可用子队列内比较结构化基线和融合模型。</li><li>只有在真实实验完成后，才将指标、图表和模型解释写入论文；摘要、讨论和结论应与实际结果一致。</li><li>正式提交前，核对全部参考文献的作者、题名、期刊、卷期页码和 DOI，并按学校要求统一格式。</li></ol>
+<h1 id="h687">附录 C 文献查新记录与研究定位</h1>
+<p>本轮查新时间为 2026 年 10 月，围绕以下主题检索可访问的学术出版平台和数据库：30 天再入院风险预测、MIMIC-IV、结构化电子健康记录、临床文本融合、ClinicalT5/ClinicalBERT、集成学习和模型可解释性。此次检索主要用于发现与本研究最接近的公开工作，并非覆盖所有中英文数据库的系统综述，也不构成正式科技查新报告。</p>
+<p>与本研究直接相关的代表性工作包括：Pandey 等于 2025 年使用 ClinicalT5 处理临床文本并与结构化 EHR 结合预测 30 天再入院[17]；He 等基于 MIMIC-IV 比较结构化记录与出院小结，聚焦急诊相关再入院[18]；Datta 等开展的结构化 EHR、临床文本与外部医学知识融合研究[19]；Mahmoudi 等的系统综述指出模型校准与临床效用评价仍有不足[20]。这些工作说明“结构化数据 + 临床文本 + 集成分类器”不能单独作为创新性主张。</p>
+<p>基于本轮公开检索，未发现足以支持“本研究首次将结构化数据、临床文本、Stacking 与 SHAP 用于 30 天再入院预测”这一主张的证据。因此，将论文定位为基于 MIMIC-IV 的实证比较研究：在明确队列与结局定义的前提下，比较单模型和 Stacking 的性能与稳定性；在文本可用且预测时点合理的子队列中，评估不同文本表示的增量价值；并把校准、患者级数据划分和文本时间泄漏纳入可靠性评价。正式开题或论文投稿前，应继续在 PubMed、Web of Science、Scopus、CNKI 等数据库中补充检索，并记录检索式、日期、纳入排除标准。</p></div>
+</div>
+</section>
+<!-- ============ 研究进度 ============ -->
+<section class="view" id="view-progress">
+<div class="sec">
+<span class="kicker">TIMELINE</span><h2>六阶段研究计划</h2><div class="desc">与开题报告、PPT-4 第 16 页一致 · 点击状态标签可循环切换「未开始 → 进行中 → 已完成」，备注可直接点击编辑，自动保存在本机浏览器</div>
+<div id="stage-list"></div>
+<div class="note-tools"><button class="btn sm" id="btn-export">导出进度备份</button><button class="btn sm" id="btn-import">导入备份</button><button class="btn sm" id="btn-reset">恢复默认</button><input type="file" id="import-file" accept=".json" style="display:none"></div>
+</div>
+<div class="grid g2">
+<div class="card pad"><span class="kicker" style="margin-bottom:12px">MILESTONES</span><h3 style="font-size:16px;color:var(--navy-900);margin-bottom:6px">已完成里程碑</h3><div id="ms-list-2"></div></div>
+<div class="card pad"><span class="kicker" style="margin-bottom:12px">APPENDIX</span><h3 style="font-size:16px;color:var(--navy-900);margin-bottom:6px">附录 A · 待补充清单（可勾选）</h3><div id="ax-list"></div></div>
+</div>
+</section>
+<!-- ============ 数据与结果 ============ -->
+<section class="view" id="view-data">
+<div class="sec">
+<span class="kicker">FULL DATA</span><h2>完整数据 · MIMIC-IV v3.1 + Note v2.2</h2><div class="desc">已于 2026-10-27 完成下载与核验（数据核验报告_完整数据_2026-10-27.md）· 数据集嵌入方式：统计口径与样本表内嵌，原始数据通过本地入口访问</div>
+<div class="card pad" style="margin-bottom:14px;background:linear-gradient(135deg,#f8fbff,#eef4fb)"><div style="display:flex;gap:18px;flex-wrap:wrap"><div style="flex:2;min-width:280px"><span class="chip blue">数据库介绍 · About MIMIC</span><h3 style="margin:10px 0 8px">MIMIC：Medical Information Mart for Intensive Care</h3><div style="font-size:13.5px;line-height:1.85;color:#334155">由 MIT 与贝斯以色列女执事医疗中心（BIDMC）联合发布的<b>全球最大公开电子健康记录数据库</b>，覆盖 2008–2022 年院内全部住院与 ICU 诊疗记录：人口学、诊断、用药、检验、手术、出入转、DRG 等结构化表格，以及出院小结等临床文本。数据经 PhysioNet 发布，日期随机偏移脱敏、无直接标识符，CITI 培训认证后免费授权科研使用，是再入院预测与临床 NLP 研究的主流数据源。</div></div><div style="flex:1;min-width:230px;border-left:1px solid var(--line);padding-left:16px;display:flex;flex-direction:column;justify-content:center;gap:9px"><div><div class="biglabel">本研究使用版本</div><div style="font-size:13px;font-weight:600;color:#1d4ed8">MIMIC-IV 3.1（结构化）+ MIMIC-IV-Note 2.2（出院小结）</div></div><div><div class="biglabel">获取方式</div><div style="font-size:13px">PhysioNet · CITI 认证 · 免费授权</div></div><div><div class="biglabel">数据规模（本次核验）</div><div style="font-size:13px">546,028 次住院 · 223,452 名患者 · 331,793 份出院小结</div></div><div><div class="biglabel">选择理由</div><div style="font-size:13px">结构化与文本可按 hadm_id 关联，适配文本融合再入院预测选题</div></div></div></div></div>
+<div class="grid g2">
+<div class="card pad"><span class="chip blue">MIMIC-IV v3.1（hosp 模块）</span>
+<div class="grid g3" style="margin-top:12px;gap:10px"><div><div class="bignum">546,028</div><div class="biglabel">住院记录 admissions</div></div><div><div class="bignum">223,452</div><div class="biglabel">患者 patients</div></div><div><div class="bignum">11,801</div><div class="biglabel">院内死亡</div></div></div>
+<div style="margin-top:14px"><div class="biglabel" style="margin-bottom:6px">入院类型 Top 8（条数）</div><div id="adm-bars"></div></div>
+</div>
+<div class="card pad"><span class="chip teal">MIMIC-IV-Note v2.2（discharge）</span>
+<div class="grid g3" style="margin-top:12px;gap:10px"><div><div class="bignum">331,793</div><div class="biglabel">出院小结</div></div><div><div class="bignum">145,914</div><div class="biglabel">覆盖患者</div></div><div><div class="bignum" style="font-size:20px">331,732</div><div class="biglabel">可关联住院</div></div></div>
+<div class="grid g2" style="margin-top:14px;gap:10px">
+<div style="background:#f6f9fd;border-radius:10px;padding:10px 14px"><div class="bignum" style="font-size:19px;color:#1d4ed8">60.75%</div><div class="biglabel">住院-文本匹配率（99.98% 可匹配）</div></div>
+<div style="background:#f6f9fd;border-radius:10px;padding:10px 14px"><div class="bignum" style="font-size:19px;color:#059669">99.84%</div><div class="biglabel">charttime ≤ dischtime（无泄漏）</div></div>
+<div style="background:#f6f9fd;border-radius:10px;padding:10px 14px"><div class="bignum" style="font-size:19px;color:#b45309">73.90%</div><div class="biglabel">storetime &gt; dischtime（出院后归档）</div></div>
+<div style="background:#f6f9fd;border-radius:10px;padding:10px 14px"><div class="bignum" style="font-size:19px">26.03%</div><div class="biglabel">storetime ≤ dischtime（出院前归档，8.6 万条）</div></div>
+</div>
+</div>
+</div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px"><a class="btn sm" href="数据集-完整/mimic-iv/3.1/hosp/admissions.csv.gz" target="_blank">admissions.csv.gz</a><a class="btn sm" href="数据集-完整/mimic-iv/3.1/hosp/diagnoses_icd.csv.gz" target="_blank">diagnoses_icd.csv.gz</a><a class="btn sm" href="数据集-完整/mimic-iv-note/2.2/discharge.csv.gz" target="_blank">discharge.csv.gz</a><a class="btn sm" href="demo数据-结果输出/04_日志与配置/数据核验报告_完整数据_2026-10-27.md" target="_blank">查看核验报告</a></div>
+</div>
+<div class="sec">
+<span class="kicker">DEMO PIPELINE</span><h2>Demo 数据 · 全流程验证</h2><div class="desc">MIMIC-IV Demo（100 名受试者 / 916,166 条事件）· 目的是打通"队列→特征→建模→评价→图表"全流程，数值不代表正式结论</div>
+<div class="grid g4" style="margin-bottom:14px">
+<div class="stat"><div class="v" id="d-queue">—</div><div class="k">队列住院记录（受试者 <b id="d-sub">—</b>）</div></div>
+<div class="stat"><div class="v" id="d-pos">—</div><div class="k">再入院阳性（<span id="d-posrate">—</span>）</div></div>
+<div class="stat"><div class="v" id="d-train">—</div><div class="k">训练样本（阳性率 <span id="d-prt">—</span>）</div></div>
+<div class="stat"><div class="v" id="d-test">—</div><div class="k">留出测试样本（阳性率 <span id="d-prs">—</span>）</div></div>
+</div>
+<div class="grid g2" style="margin-bottom:14px">
+<div class="chart-box"><h4>ROC 曲线（Demo 结构化模型）</h4><div id="chart-roc"></div><div class="legend" id="roc-legend"></div></div>
+<div class="chart-box"><h4>PR 曲线（Demo 结构化模型）</h4><div id="chart-pr"></div><div class="legend" id="pr-legend"></div></div>
+</div>
+<div class="grid g2">
+<div class="card pad"><span class="chip gray">表 A</span><p style="font-size:12.5px;color:var(--muted);margin:6px 0 10px">Demo 模型性能指标（模型性能指标表.csv，示例批次）</p><div class="twrap"><table class="tbl" id="tbl-metrics"></table></div></div>
+<div class="chart-box"><h4>特征重要性 Top 10（SHAP 均值，Demo）</h4><div id="chart-imp"></div></div>
+</div>
+</div>
+<div class="sec">
+<span class="kicker">SAMPLES</span><h2>队列与特征样例（Demo 内嵌数据）</h2><div class="desc">研究队列.csv 前 10 行 · 结构化特征表.csv 前 8 行（节选列）· 完整文件见下方入口</div>
+<div class="card pad" style="margin-bottom:14px"><span class="chip blue">研究队列（结构）</span><div class="twrap" style="margin-top:10px"><table class="tbl" id="tbl-queue"></table></div></div>
+<div class="card pad"><span class="chip blue">结构化特征表（节选列）</span><div class="twrap" style="margin-top:10px"><table class="tbl" id="tbl-feat"></table></div></div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px"><a class="btn sm" href="数据集-demo" target="_blank">打开 Demo 数据目录</a><a class="btn sm" href="数据集-完整" target="_blank">打开完整数据目录</a><a class="btn sm" href="demo数据-结果输出" target="_blank">打开结果输出目录</a></div>
+<div class="notice" style="background:var(--gold-bg);border:1px solid #fde68a;border-radius:10px;padding:12px 16px;font-size:13px;color:#784307;margin-top:16px"><b>阅读提示：</b>结果输出目录对应论文章节——00 队列与特征→第三章；01 结构化模型→第四章；02 临床文本融合→第五章；03 可解释性→第六章；05 图表→第四章至第六章插图。Demo 指标仅用于流程验证，正式结论以完整数据实验为准。</div>
+</div>
+</section>
+<!-- ============ 参考文献 ============ -->
+<section class="view" id="view-refs">
+<div class="sec">
+<span class="kicker">REFERENCES</span><h2>参考文献（GB/T 7714 · 24 条）</h2><div class="desc">点击「详情」弹出文献卡片：可查看完整题录、与论文的关系，并跳转本地 PDF / DOI 原文</div>
+<div class="refbar"><input id="ref-search" placeholder="搜索标题 / 作者 / 关键词…"><div class="fchip on" data-f="all">全部 24</div><div class="fchip" data-f="pdf">本地PDF 13</div><div class="fchip" data-f="en">英文</div><div class="fchip" data-f="cn">中文</div><div class="fchip" data-f="fusion">文本融合</div><div class="fchip" data-f="pending">待核实 2</div></div>
+<div class="refgrid" id="ref-grid"></div>
+</div>
+</section>
+</main>
+</div>
+<!-- ============ 文献详情弹窗 ============ -->
+<div class="modal" id="modal"><div class="modal-panel"><div class="modal-head"><h3 id="modal-title"></h3><button class="x" id="modal-x">✕</button></div><div class="modal-body" id="modal-body"></div></div></div>
+<script src="data1.js"></script><script src="data2.js"></script><script src="data3.js"></script>
+<script>
+const LSKEY='lwy_showcase_v1';
+const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function loadS(){try{return JSON.parse(localStorage.getItem(LSKEY))||{}}catch(e){return{}}}
+let S=loadS(); S.stages=S.stages||{}; S.ax=S.ax||{};
+function saveS(){localStorage.setItem(LSKEY,JSON.stringify(S))}
+const VTITLES={overview:'总览',framework:'研究框架',thesis:'论文全文',progress:'研究进度',data:'数据与结果',refs:'参考文献'};
+const VCRUMBS={overview:'开题阶段 · 研究工作台',framework:'对应开题答辩 PPT-4',thesis:'框架重写稿 · 七章',progress:'可编辑 · 本地自动保存',data:'完整数据核验 + Demo 流程验证',refs:'GB/T 7714 · 点击详情弹出'};
+function go(v){
+  $$('.view').forEach(x=>x.classList.remove('active'));
+  $('#view-'+v).classList.add('active');
+  $$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.v===v));
+  $('#tb-title').textContent=VTITLES[v]; $('#tb-crumb').textContent=VCRUMBS[v];
+  location.hash=v; window.scrollTo({top:0});
+}
+$$('.nav-item').forEach(el=>el.addEventListener('click',()=>go(el.dataset.v)));
+$$('.quick').forEach(el=>el.addEventListener('click',()=>go(el.dataset.go)));
+/* ---------- 总览渲染 ---------- */
+function renderOverview(){
+  $('#st-adm').innerHTML='54.6<small> 万</small>';
+  $('#tb-date').textContent='更新于 '+DATA.builtAt;
+  const ms=DATA.milestones.map(m=>'<div class="mst"><div class="md">'+m[0]+'</div><p>'+m[1]+'</p></div>').join('');
+  $('#ms-list').innerHTML='<div class="tline">'+DATA.milestones.map(m=>'<div class="tl"><div class="d">'+m[0]+'</div><p>'+m[1]+'</p></div>').join('')+'</div>';
+  $('#ms-list-2').innerHTML=ms;
+}
+/* ---------- PPT 大纲 ---------- */
+function renderPPT(){
+  $('#ppt-list').innerHTML=DATA.ppt.map((p,i)=>{
+    const title=p[0]||('第 '+(i+1)+' 页');
+    const rest=p.slice(1).map(t=>'<div>· '+t+'</div>').join('');
+    return '<div class="ppt-item"><div class="ph" data-i="'+i+'"><div class="pno">'+(i+1)+'</div><div class="pt">'+title+'</div><div class="caret">▸</div></div><div class="pb">'+(rest||'<i style="color:#94a3b8">本页以图形为主，请打开 PPT-4 查看原图</i>')+'</div></div>';
+  }).join('');
+  $$('#ppt-list .ph').forEach(el=>el.addEventListener('click',()=>el.parentElement.classList.toggle('open')));
+}
+/* ---------- 进度渲染 ---------- */
+const STMAP={todo:['未开始','chip gray'],doing:['进行中','chip amber'],done:['已完成','chip green']};
+function stagePercent(){let t=0;DATA.stages.forEach(s=>{const st=(S.stages[s.id]&&S.stages[s.id].status)||s.status;t+=st==='done'?1:st==='doing'?0.5:0});return Math.round(t/DATA.stages.length*100)}
+function refreshPB(){const p=stagePercent();$('#pb-fill').style.width=p+'%';$('#pb-pct').textContent=p+'%'}
+function renderStages(){
+  $('#stage-list').innerHTML=DATA.stages.map(s=>{
+    const ov=S.stages[s.id]||{};const st=ov.status||s.status;const note=ov.note!=null?ov.note:s.note;
+    const tasks=(s.tasks||[]).map(t=>'<li>'+t+'</li>').join('');
+    return '<div class="stage"><div class="shead"><div class="sno">'+s.id+'</div><span class="sname">'+s.name+'</span><span class="speriod">'+s.period+'</span><span class="chip '+STMAP[st][1]+' st-status" data-id="'+s.id+'" title="点击切换状态">'+STMAP[st][0]+'</span></div><ul>'+tasks+'</ul><div class="note" contenteditable="true" data-id="'+s.id+'">'+esc(note)+'</div></div>';
+  }).join('');
+  $$('.st-status').forEach(el=>el.addEventListener('click',()=>{
+    const id=el.dataset.id;const cur=(S.stages[id]&&S.stages[id].status)||DATA.stages.find(x=>String(x.id)===String(id)).status;
+    const nx=cur==='todo'?'doing':cur==='doing'?'done':'todo';
+    S.stages[id]=Object.assign({},S.stages[id],{status:nx});saveS();renderStages();refreshPB();
+  }));
+  $$('.stage .note').forEach(el=>el.addEventListener('blur',()=>{
+    const id=el.dataset.id;S.stages[id]=Object.assign({},S.stages[id]||{},{note:el.textContent.trim()});saveS();
+  }));
+  refreshPB();
+}
+function renderAx(){
+  $('#ax-list').innerHTML=DATA.appendix.map((a,i)=>{
+    const done=!!S.ax[i];
+    return '<label class="ax-item'+(done?' done':'')+'"><input type="checkbox" data-i="'+i+'"'+(done?' checked':'')+'><span class="sec">'+a[0]+'</span><p>'+a[1]+'</p><span class="chip '+(a[3]==='高'?'red':'amber')+'" style="font-size:10.5px">'+a[3]+'优先</span></label>';
+  }).join('');
+  $$('#ax-list input').forEach(el=>el.addEventListener('change',()=>{S.ax[el.dataset.i]=el.checked;saveS();renderAx()}));
+}
+$('#btn-export').addEventListener('click',()=>{
+  const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='论文进度备份.json';a.click();
+});
+$('#btn-import').addEventListener('click',()=>$('#import-file').click());
+$('#import-file').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{S=JSON.parse(r.result);S.stages=S.stages||{};S.ax=S.ax||{};saveS();renderStages();renderAx();alert('导入成功')}catch(err){alert('文件格式错误')}};
+  r.readAsText(f);
+});
+$('#btn-reset').addEventListener('click',()=>{if(confirm('确定恢复默认进度？当前修改将被清除')){S={stages:{},ax:{}};saveS();renderStages();renderAx()}});
+/* ---------- 参考文献 ---------- */
+let refFilter='all',refQ='';
+function refMatch(r){
+  if(refFilter==='pdf'&&!r.pdf)return false;
+  if(refFilter==='en'&&!r.tags.includes('英文'))return false;
+  if(refFilter==='cn'&&!r.tags.includes('中文文献'))return false;
+  if(refFilter==='fusion'&&!r.tags.includes('文本融合'))return false;
+  if(refFilter==='pending'&&!r.pending)return false;
+  if(refQ){const q=refQ.toLowerCase();const hay=(r.t+' '+r.a+' '+r.v+' '+r.tags.join(' ')).toLowerCase();if(!hay.includes(q))return false}
+  return true;
+}
+function renderRefs(){
+  const list=DATA.refs.filter(refMatch);
+  $('#ref-grid').innerHTML=list.map(r=>{
+    const chs=r.ch.map(c=>'<span class="chip blue" style="font-size:10.5px">'+c+'</span>').join('');
+    const tags=r.tags.map(t=>'<span class="chip '+(t==='待核实'?'red':t==='中文文献'?'gold':'gray')+'" style="font-size:10.5px">'+t+'</span>').join('');
+    return '<div class="refcard"><div style="display:flex;gap:8px;align-items:flex-start"><span class="chip gray" style="flex-shrink:0">['+r.n+']</span><div class="rt">'+r.t+'</div></div><div class="rs">'+r.a+' · '+r.v+' · '+r.y+'</div><div class="ref-tags">'+tags+chs+'</div><div class="acts"><button class="btn sm primary" onclick="openRef('+r.n+')">详情</button>'+(r.pdf?'<a class="btn sm" href="'+r.pdf+'" target="_blank">本地PDF</a>':'')+'</div></div>';
+  }).join('')||'<div style="color:#94a3b8;font-size:13px">无匹配文献</div>';
+}
+$$('#view-refs .fchip').forEach(el=>el.addEventListener('click',()=>{
+  refFilter=el.dataset.f;$$('#view-refs .fchip').forEach(x=>x.classList.toggle('on',x===el));renderRefs();
+}));
+$('#ref-search').addEventListener('input',e=>{refQ=e.target.value.trim();renderRefs()});
+function openRef(n){
+  const r=DATA.refs.find(x=>x.n===n);if(!r)return;
+  $('#modal-title').innerHTML='<span class="chip gray" style="vertical-align:3px">['+r.n+']</span> '+r.t;
+  const doiHtml=r.doi?'<a href="https://doi.org/'+r.doi+'" target="_blank">'+r.doi+'</a>':(r.url?'<a href="'+r.url+'" target="_blank">期刊/数据库链接</a>':'<span style="color:#94a3b8">—</span>');
+  const chs=r.ch.map(c=>'<span class="chip blue" style="font-size:11px">'+c+'</span>').join(' ');
+  const tags=r.tags.map(t=>'<span class="chip '+(t==='待核实'?'red':t==='中文文献'?'gold':'gray')+'" style="font-size:11px">'+t+'</span>').join(' ');
+  let pdfSec='';let embedded=false;
+  if(r.pdf){
+    embedded=!!(DATA.pdfb64&&DATA.pdfb64[r.pdf]);
+    if(embedded){
+      pdfSec='<div style="margin-top:14px"><b style="font-size:13px;color:var(--navy-900)">PDF 全文（已封装在本页面内）</b>'
+        +'<div style="display:flex;gap:10px;margin:10px 0"><button class="btn sm primary" onclick="showPdf(\''+r.pdf+'\')">加载预览</button><button class="btn sm" onclick="openPdfWin(\''+r.pdf+'\')">新窗口打开</button><span class="chip gray" style="align-self:center">无需外部文件</span></div>'
+        +'<div id="pdf-slot"></div></div>';
+    }else{
+    pdfSec='<div style="margin-top:14px"><b style="font-size:13px;color:var(--navy-900)">本地 PDF 全文（内嵌预览）</b>'
+      +'<div style="display:flex;gap:10px;margin:10px 0"><a class="btn sm primary" href="'+r.pdf+'" target="_blank">新窗口打开 PDF</a><span class="chip gray" style="align-self:center">若下方预览空白，请用左侧按钮</span></div>'
+      +'<iframe src="'+r.pdf+'" style="width:100%;height:480px;border:1px solid var(--line);border-radius:10px;background:#525659"></iframe></div>';
+    }
+  }
+  $('#modal-body').innerHTML='<div class="meta-grid">'
+    +'<div class="mg"><b>作者</b><span>'+r.a+'</span></div>'
+    +'<div class="mg"><b>年份</b><span>'+r.y+'</span></div>'
+    +'<div class="mg"><b>期刊 / 会议</b><span>'+r.v+'</span></div>'
+    +'<div class="mg"><b>DOI / 链接</b><span>'+doiHtml+'</span></div></div>'
+    +'<b style="font-size:13px;color:var(--navy-900)">GB/T 7714 题录</b><div class="cite-box">'+r.cite+'</div>'
+    +'<b style="font-size:13px;color:var(--navy-900)">与论文的关系</b><div class="role-box">'+r.role+'</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><span style="font-size:12px;color:var(--faint);align-self:center">引用章节</span>'+chs+'<span style="font-size:12px;color:var(--faint);margin-left:8px;align-self:center">标签</span>'+tags+'</div>'
+    +pdfSec;
+  if(embedded)showPdf(r.pdf);
+  $('#modal').classList.add('show');
+}
+const _pdfUrls={};
+function pdfBlobUrl(p){
+  if(_pdfUrls[p])return _pdfUrls[p];
+  const bin=atob(DATA.pdfb64[p]);const u=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+  _pdfUrls[p]=URL.createObjectURL(new Blob([u],{type:'application/pdf'}));
+  return _pdfUrls[p];
+}
+function showPdf(p){
+  const slot=document.getElementById('pdf-slot');if(!slot)return;
+  slot.innerHTML='<iframe src="'+pdfBlobUrl(p)+'" style="width:100%;height:480px;border:1px solid var(--line);border-radius:10px;background:#525659"></iframe>';
+}
+function openPdfWin(p){window.open(pdfBlobUrl(p),'_blank')}
+function downloadPpt(){
+  if(!DATA.pptb64){location.href='开题汇报PPT/开题汇报ppt-4.pptx';return}
+  const bin=atob(DATA.pptb64);const u=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+  const url=URL.createObjectURL(new Blob([u],{type:'application/vnd.openxmlformats-officedocument.presentationml.presentation'}));
+  const a=document.createElement('a');a.href=url;a.download='开题汇报ppt-4.pptx';document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),30000);
+}
+function closeModal(){$('#modal').classList.remove('show')}
+$('#modal-x').addEventListener('click',closeModal);
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+/* ---------- 图表 ---------- */
+const MCOLORS={LR:'#64748b',RF:'#f59e0b',XGB:'#10b981',LGBM:'#6366f1'};
+function curveSVG(series,opt){
+  const W=440,H=300,PL=44,PR=12,PT=12,PB=32;
+  const iw=W-PL-PR,ih=H-PT-PB;
+  let g='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">';
+  for(let i=0;i<=4;i++){const x=PL+iw*i/4,y=PT+ih*(1-i/4);
+    g+='<line x1="'+PL+'" y1="'+y+'" x2="'+(PL+iw)+'" y2="'+y+'" stroke="#eef2f8" stroke-width="1"/>';
+    g+='<text x="'+(PL-7)+'" y="'+(y+4)+'" font-size="10" fill="#94a3b8" text-anchor="end">'+(i/4).toFixed(2)+'</text>';
+    g+='<text x="'+x+'" y="'+(PT+ih+16)+'" font-size="10" fill="#94a3b8" text-anchor="middle">'+(i/4).toFixed(2)+'</text>';}
+  g+='<line x1="'+PL+'" y1="'+(PT+ih)+'" x2="'+(PL+iw)+'" y2="'+(PT+ih)+'" stroke="#cbd5e1"/><line x1="'+PL+'" y1="'+PT+'" x2="'+PL+'" y2="'+(PT+ih)+'" stroke="#cbd5e1"/>';
+  if(opt.diag)g+='<line x1="'+PL+'" y1="'+(PT+ih)+'" x2="'+(PL+iw)+'" y2="'+PT+'" stroke="#cbd5e1" stroke-dasharray="4 4"/>';
+  if(opt.base!=null){const by=PT+ih*(1-opt.base);g+='<line x1="'+PL+'" y1="'+by+'" x2="'+(PL+iw)+'" y2="'+by+'" stroke="#cbd5e1" stroke-dasharray="4 4"/><text x="'+(PL+iw-4)+'" y="'+(by-5)+'" font-size="9.5" fill="#94a3b8" text-anchor="end">基线 '+opt.base.toFixed(2)+'</text>';}
+  series.forEach(s=>{
+    const pts=s.pts.map(p=>(PL+iw*p[0]).toFixed(1)+','+(PT+ih*(1-p[1])).toFixed(1)).join(' ');
+    g+='<polyline points="'+pts+'" fill="none" stroke="'+s.color+'" stroke-width="2" stroke-linejoin="round"/>';
+  });
+  g+='<text x="'+(PL+iw/2)+'" y="'+(H-4)+'" font-size="10.5" fill="#64748b" text-anchor="middle">'+opt.xlabel+'</text>';
+  g+='<text x="13" y="'+(PT+ih/2)+'" font-size="10.5" fill="#64748b" text-anchor="middle" transform="rotate(-90 13 '+(PT+ih/2)+')">'+opt.ylabel+'</text>';
+  return g+'</svg>';
+}
+function renderCharts(){
+  const D=DATA.demo,roc=[],pr=[],lg1=[],lg2=[];
+  Object.keys(D.roc).forEach(k=>{
+    const m=D.roc[k],c=MCOLORS[k]||'#334155';
+    roc.push({color:c,pts:m.fpr.map((f,i)=>[f,m.tpr[i]])});
+    lg1.push('<span><i style="background:'+c+'"></i>'+k+' · AUROC '+m.auroc.toFixed(3)+'</span>');
+    const p=D.pr[k];
+    pr.push({color:c,pts:p.rec.map((r,i)=>[r,p.prec[i]])});
+    lg2.push('<span><i style="background:'+c+'"></i>'+k+' · AUPRC '+p.auprc.toFixed(3)+'</span>');
+  });
+  $('#chart-roc').innerHTML=curveSVG(roc,{diag:true,xlabel:'假阳性率 FPR',ylabel:'真阳性率 TPR'});
+  $('#roc-legend').innerHTML=lg1.join('');
+  $('#chart-pr').innerHTML=curveSVG(pr,{base:D.baseline,xlabel:'召回率 Recall',ylabel:'精确率 Precision'});
+  $('#pr-legend').innerHTML=lg2.join('');
+  const imp=D.importance.slice(0,10),mx=imp[0].imp;
+  $('#chart-imp').innerHTML=imp.map(f=>{
+    const w=Math.max(3,f.imp/mx*82);
+    return '<div style="margin:7px 0"><div style="display:flex;font-size:12px;color:#33415a;margin-bottom:3px"><span style="flex:1;font-family:Consolas,monospace">'+f.name+'</span><span style="color:#64748b">'+f.imp.toFixed(4)+'</span></div><div style="background:#eef2f8;border-radius:5px;height:8px"><div style="width:'+w+'%;height:100%;border-radius:5px;background:linear-gradient(90deg,#2563eb,#06b6d4)"></div></div></div>';
+  }).join('');
+}
+/* ---------- 数据页填充 ---------- */
+function renderData(){
+  const D=DATA.demo,F=DATA.full;
+  $('#d-queue').textContent=D.queueRows;$('#d-sub').textContent=D.queueSubjects;
+  $('#d-pos').textContent=D.queuePos;$('#d-posrate').textContent='阳性率 '+D.queuePosRate+'%';
+  $('#d-train').textContent=D.nTrain;$('#d-prt').textContent=D.posRateTrain+'%';
+  $('#d-test').textContent=D.nTest;$('#d-prs').textContent=D.posRateTest+'%';
+  const mxT=Math.max.apply(null,F.admTypes.map(a=>a[1]));
+  $('#adm-bars').innerHTML=F.admTypes.map(a=>'<div class="mbar"><span style="width:150px;font-family:Consolas,monospace">'+a[0]+'</span><div class="mb" style="width:'+(a[1]/mxT*100).toFixed(1)+'%"></div><span>'+a[1].toLocaleString()+'</span></div>').join('');
+  const th=arr=>'<thead><tr>'+arr.map(c=>'<th>'+c+'</th>').join('')+'</tr></thead>';
+  const tb=rows=>'<tbody>'+rows.map(r=>'<tr>'+r.map(c=>'<td class="mono">'+c+'</td>').join('')+'</tr>').join('')+'</tbody>';
+  $('#tbl-metrics').innerHTML=th(D.metricsCols)+tb(D.metrics);
+  $('#tbl-queue').innerHTML=th(D.queueCols)+tb(D.queueSample);
+  $('#tbl-feat').innerHTML=th(D.featCols)+tb(D.featSample);
+}
+/* ---------- 论文目录 ---------- */
+function renderTOC(){
+  const art=$('#thesis-article');const hs=art.querySelectorAll('h1,h2');
+  let html='';
+  hs.forEach(h=>{
+    const id=h.id||('t'+h.textContent.length+hs.offsetTop);if(!h.id)h.id=id;
+    html+='<a class="'+(h.tagName==='H1'?'h1':'h2')+'" data-t="'+h.id+'">'+esc(h.textContent)+'</a>';
+  });
+  $('#thesis-toc').innerHTML=html;
+  $$('#thesis-toc a').forEach(a=>a.addEventListener('click',()=>{
+    const t=document.getElementById(a.dataset.t);if(t)window.scrollTo({top:t.getBoundingClientRect().top+window.scrollY-86,behavior:'smooth'});
+  }));
+}
+/* ---------- 初始化 ---------- */
+const _pc=document.getElementById("ppt-count");if(_pc)_pc.textContent=DATA.ppt.length;
+renderOverview();renderPPT();renderStages();renderAx();renderRefs();renderCharts();renderData();renderTOC();
+const h0=location.hash.replace('#','');go(VTITLES[h0]?h0:'overview');
+</script>
+</body>
+</html>
